@@ -426,7 +426,7 @@ export const defaultPhenotype: TreePhenotype = {
   flowerStyle: "daisy",
   flowerPalette: "creamCoral",
   flowerSize: 1,
-  flowerDensity: 1,
+  flowerDensity: 2,
   flowerPetals: 0.5,
   stemStyle: "smooth",
   stemPalette: "oliveWood",
@@ -454,8 +454,8 @@ export const defaultConfig: ColonizationConfig = {
   immortal: false,
   leafGrowRate: 0.016 / 3,
   leafSpawnRate: 0.32 / 3,
-  flowerGrowRate: 0.012 / 3,
-  flowerSpawnRate: 0.28 / 3,
+  flowerGrowRate: (0.012 / 3) * 2,
+  flowerSpawnRate: (0.28 / 3) * 2,
   resproutChance: 0.2,
   /** Per sim-step at ~12Hz; applied every frame via wall-clock scaling. */
   branchGrowRate: 0.32 / 3,
@@ -679,6 +679,12 @@ export class SpaceColonizationTree {
   private clickShootRootBirth = -1;
   /** Remaining sim steps where the click tip gets growth priority. */
   private clickEnergy = 0;
+  /**
+   * Autonomous tips pay one per sim step and extend when this reaches the cost.
+   * A click pays the whole cost, so the grow tool stays immediate.
+   */
+  private branchExtendCredit = 9;
+  private static readonly BRANCH_EXTEND_COST = 10;
   /** Let click-driven growth briefly ignore maxNodes. */
   private clickIgnoreCap = false;
   /** Open tips / junctions, cell = max influence distance. */
@@ -2139,6 +2145,17 @@ export class SpaceColonizationTree {
 
     // Shed by chance (farther / fuller → likelier), same spirit as fork rolls.
     this.maybeShedBranches();
+
+    this.branchExtendCredit +=
+      this.clickEnergy > 0
+        ? SpaceColonizationTree.BRANCH_EXTEND_COST
+        : 1;
+    if (this.branchExtendCredit < SpaceColonizationTree.BRANCH_EXTEND_COST) {
+      this.updateFoliage();
+      this.updateFlowers();
+      return;
+    }
+    this.branchExtendCredit -= SpaceColonizationTree.BRANCH_EXTEND_COST;
 
     const candidates = this.unfinished();
     if (candidates.length === 0) {

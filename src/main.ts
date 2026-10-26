@@ -1062,7 +1062,7 @@ function fitStyleNumbers(
     0.4,
     flowerMax,
   );
-  const flowerMaxDens = leafDensity > 1.15 ? 1.1 : 1.45;
+  const flowerMaxDens = Math.min(2.8, (leafDensity > 1.15 ? 1.1 : 1.45) * 2);
   const flowerDensity = clamp(
     snapStep(Math.min(guess.flowerDensity, flowerMaxDens), 0.05),
     0.35,
@@ -1090,7 +1090,7 @@ function pickPhenotype(): TreePhenotype {
       leafWidth: s.wid * (0.88 + Math.random() * 0.24),
       leafDensity: s.dens * (0.82 + Math.random() * 0.3),
       flowerSize: 0.8 + Math.random() * 0.5,
-      flowerDensity: 0.65 + Math.random() * 0.6,
+      flowerDensity: (0.65 + Math.random() * 0.6) * 2,
       flowerPetals: 0.2 + Math.random() * 0.6,
       stemGirth: 0.85 + Math.random() * 0.45,
     }),
@@ -1833,7 +1833,7 @@ function randomizeFullStyle(): void {
       leafWidth: aspect.wid * (0.88 + Math.random() * 0.24),
       leafDensity: aspect.dens * (0.82 + Math.random() * 0.3),
       flowerSize: 0.8 + Math.random() * 0.5,
-      flowerDensity: 0.65 + Math.random() * 0.6,
+      flowerDensity: (0.65 + Math.random() * 0.6) * 2,
       flowerPetals: 0.2 + Math.random() * 0.6,
       stemGirth: 0.85 + Math.random() * 0.45,
     }),
