@@ -1,0 +1,85 @@
+{
+  "url": "http://localhost:5175/?perf=1",
+  "warmMs": 6000,
+  "sampleMs": 3000,
+  "plantExtra": 2,
+  "capturedAt": "2026-07-20T02:38:45.023Z",
+  "fps": 14,
+  "scene": {
+    "trees": 3,
+    "nodes": 840,
+    "leaves": 1223,
+    "flowers": 21,
+    "bees": 11,
+    "falling": 0,
+    "stepHz": 12
+  },
+  "buckets": {
+    "sim.step": {
+      "avgMs": 3.737,
+      "maxMs": 15,
+      "n": 43,
+      "pct": 11.7
+    },
+    "sim.transitions": {
+      "avgMs": 0.114,
+      "maxMs": 0.3,
+      "n": 43,
+      "pct": 0.4
+    },
+    "sim.fx": {
+      "avgMs": 0.049,
+      "maxMs": 0.2,
+      "n": 43,
+      "pct": 0.2
+    },
+    "draw.wood": {
+      "avgMs": 5.049,
+      "maxMs": 12.4,
+      "n": 129,
+      "pct": 15.8
+    },
+    "draw.canopy": {
+      "avgMs": 0.495,
+      "maxMs": 0.9,
+      "n": 129,
+      "pct": 1.6
+    },
+    "draw.leaves": {
+      "avgMs": 3.436,
+      "maxMs": 5.2,
+      "n": 129,
+      "pct": 10.8
+    },
+    "draw.flowers": {
+      "avgMs": 0.12,
+      "maxMs": 0.4,
+      "n": 129,
+      "pct": 0.4
+    },
+    "draw.flyers": {
+      "avgMs": 0.121,
+      "maxMs": 0.3,
+      "n": 43,
+      "pct": 0.4
+    },
+    "draw.falling": {
+      "avgMs": 0,
+      "maxMs": 0,
+      "n": 43,
+      "pct": 0
+    },
+    "draw": {
+      "avgMs": 27.953,
+      "maxMs": 36.2,
+      "n": 43,
+      "pct": 87.7
+    },
+    "frame": {
+      "avgMs": 31.884,
+      "maxMs": 41.8,
+      "n": 43,
+      "pct": 100
+    }
+  }
+}

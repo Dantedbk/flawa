@@ -1,0 +1,882 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>flawa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <aside id="controls" class="controls" data-open="mode" aria-label="Ajustes">
+        <nav class="controls-rail" role="tablist" aria-label="Secciones">
+          <button
+            type="button"
+            class="rail-btn active"
+            data-panel="mode"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-mode"
+            title="Modo"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 20.5V11"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+              <path
+                d="M12 12.2c-2.4-1.6-4-3.8-4.2-6.4 2.8.3 4.8 2 6.2 4.4 1.2-2.2 3-3.8 5.4-4.4-.6 2.8-2.4 4.9-5 6.4"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.55"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="rail-label">Modo</span>
+          </button>
+          <button
+            type="button"
+            class="rail-btn"
+            data-panel="grow"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-grow"
+            title="Crecimiento"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 21V10.5M12 10.5c0-3.2 2.2-5.8 5.2-6.8-0.4 3.4-2.2 5.6-5.2 6.8ZM12 12.8c0-2.6-1.8-4.8-4.4-5.8.5 2.8 1.9 4.6 4.4 5.8Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="rail-label">Crecimiento</span>
+          </button>
+          <button
+            type="button"
+            class="rail-btn"
+            data-panel="timing"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-timing"
+            title="Tiempo"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle
+                cx="12"
+                cy="12"
+                r="7.2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+              <path
+                d="M12 8.2V12l2.6 1.8"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="rail-label">Tiempo</span>
+          </button>
+          <button
+            type="button"
+            class="rail-btn"
+            data-panel="shape"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-shape"
+            title="Forma"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5.5 18.5 12 5.5l6.5 13H5.5Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="rail-label">Forma</span>
+          </button>
+          <button
+            type="button"
+            class="rail-btn"
+            data-panel="look"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-look"
+            title="Estilo"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 21v-6.2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+              <path
+                d="M12 14.8c-3.4-.2-5.8-2.4-5.8-5.2C6.2 6.4 8.8 4.2 12 3.5c3.2.7 5.8 2.9 5.8 6.1 0 2.8-2.4 5-5.8 5.2Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="rail-label">Estilo</span>
+          </button>
+          <button
+            type="button"
+            class="rail-btn"
+            data-panel="leaves"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-leaves"
+            title="Hojas"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 20.5c-3.6 0-6.2-2.2-6.2-5.4 0-3.4 2.4-5.9 5-8.4.4-.4 1-.4 1.4 0 2.6 2.5 5 5 5 8.4 0 3.2-2.6 5.4-6.2 5.4Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 20.5V11.2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.55"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="rail-label">Hojas</span>
+          </button>
+          <button
+            type="button"
+            class="rail-btn"
+            data-panel="bloom"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-bloom"
+            title="Flores"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="2.1" fill="currentColor" />
+              <path
+                d="M12 4.2c1.4 1.6 1.8 3.2 1.2 4.6-1.2-.4-2.2-1.2-3-2.4.4-1 .9-1.7 1.8-2.2ZM19.8 12c-1.6 1.4-3.2 1.8-4.6 1.2.4-1.2 1.2-2.2 2.4-3 1 .4 1.7.9 2.2 1.8ZM12 19.8c-1.4-1.6-1.8-3.2-1.2-4.6 1.2.4 2.2 1.2 3 2.4-.4 1-.9 1.7-1.8 2.2ZM4.2 12c1.6-1.4 3.2-1.8 4.6-1.2-.4 1.2-1.2 2.2-2.4 3-1-.4-1.7-.9-2.2-1.8Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.45"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="rail-label">Flores</span>
+          </button>
+          <button
+            type="button"
+            class="rail-btn"
+            data-panel="wind"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-wind"
+            title="Viento"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M4 9.5h10.2a2.4 2.4 0 1 0-2.4-2.4M4 13h13.2a2.6 2.6 0 1 1-2.6 2.6M4 16.5h7"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="rail-label">Viento</span>
+          </button>
+        </nav>
+
+        <div class="controls-body">
+          <header class="controls-head">
+            <h2 id="controls-title">Modo</h2>
+            <button type="button" id="controls-close" class="ghost" aria-label="Cerrar">
+              Cerrar
+            </button>
+          </header>
+
+          <section
+            id="panel-mode"
+            class="controls-panel active"
+            data-panel="mode"
+            role="tabpanel"
+          >
+            <label class="check">
+              <input type="checkbox" id="plant-mode" />
+              <span>Plantar al hacer clic en el suelo vacío</span>
+            </label>
+            <p class="hint">
+              La herramienta sigue activa hasta que la tocas de nuevo.
+              Sin herramienta: clic o arrastre hace crecer · Alt hojas · Ctrl corta · Mayús flor.
+            </p>
+            <label class="check">
+              <input type="checkbox" id="immortal-mode" />
+              <span>Que no se marchite</span>
+            </label>
+            <label
+              class="slider threshold"
+              id="random-threshold-slider"
+            >
+              <span class="label">Azar</span>
+              <span class="value" id="random-threshold-val">35%</span>
+              <input
+                type="range"
+                id="random-threshold"
+                min="0"
+                max="1"
+                step="0.05"
+                value="0.35"
+              />
+            </label>
+            <div class="btn-row">
+              <button type="button" id="randomize">Al azar</button>
+              <button type="button" id="clear-all">Borrar todo</button>
+            </div>
+          </section>
+
+          <section
+            id="panel-grow"
+            class="controls-panel"
+            data-panel="grow"
+            role="tabpanel"
+            hidden
+          >
+            <div id="growth-sliders" class="sliders"></div>
+          </section>
+
+          <section
+            id="panel-timing"
+            class="controls-panel"
+            data-panel="timing"
+            role="tabpanel"
+            hidden
+          >
+            <div id="timing-sliders" class="sliders"></div>
+          </section>
+
+          <section
+            id="panel-shape"
+            class="controls-panel"
+            data-panel="shape"
+            role="tabpanel"
+            hidden
+          >
+            <div id="shape-sliders" class="sliders"></div>
+          </section>
+
+          <section
+            id="panel-look"
+            class="controls-panel"
+            data-panel="look"
+            role="tabpanel"
+            hidden
+          >
+            <label class="field">
+              <span>Árbol</span>
+              <select id="tree-type">
+                <option value="custom">libre</option>
+                <option value="oliveGrove">olivo</option>
+                <option value="copperMaple">arce cobrizo</option>
+                <option value="seaWillow">sauce</option>
+                <option value="jadeNeedle">aguja de jade</option>
+                <option value="autumnFan">abanico de otoño</option>
+                <option value="chalkOrchard">huerto blanco</option>
+                <option value="citrusBough">cítrico</option>
+                <option value="mossLantern">farol de musgo</option>
+                <option value="wineThicket">matorral de vino</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Tronco</span>
+              <select id="stem-style">
+                <option value="smooth">liso</option>
+                <option value="gnarled">nudoso</option>
+                <option value="vine">enredadera</option>
+                <option value="reed">junco</option>
+                <option value="bamboo">bambú</option>
+                <option value="birch">abedul</option>
+                <option value="twiggy">ramoso</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Color del tronco</span>
+              <select id="stem-palette">
+                <option value="ash">ceniza</option>
+                <option value="walnut">nogal</option>
+                <option value="cedar">cedro</option>
+                <option value="oliveWood">olivo</option>
+                <option value="copperBark">cobre</option>
+                <option value="paleBirch">abedul</option>
+                <option value="charcoal">carbón</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Forma de la hoja</span>
+              <select id="leaf-style">
+                <option value="oval">ovalada</option>
+                <option value="lance">lanceolada</option>
+                <option value="teardrop">lágrima</option>
+                <option value="needle">aguja</option>
+                <option value="round">redonda</option>
+                <option value="heart">corazón</option>
+                <option value="lobed">lobulada</option>
+                <option value="fan">abanico</option>
+                <option value="sickle">en hoz</option>
+                <option value="diamond">puntiaguda</option>
+                <option value="spatulate">espatulada</option>
+                <option value="arrow">en flecha</option>
+                <option value="scallop">festoneada</option>
+                <option value="trifoil">trébol</option>
+                <option value="spray">ramillete</option>
+                <option value="bunch">manojo</option>
+                <option value="willow">sauce</option>
+                <option value="pinnate">compuesta</option>
+                <option value="frond">fronda</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Color de las hojas</span>
+              <select id="leaf-palette">
+                <option value="olive">olivo</option>
+                <option value="sage">salvia</option>
+                <option value="jade">jade</option>
+                <option value="copper">cobre</option>
+                <option value="autumn">otoño</option>
+                <option value="seaGlass">verde mar</option>
+                <option value="moss">musgo</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Forma de la flor</span>
+              <select id="flower-style">
+                <option value="daisy">margarita</option>
+                <option value="cup">copa</option>
+                <option value="bell">campana</option>
+                <option value="star">estrella</option>
+                <option value="tube">tubular</option>
+                <option value="pom">pompón</option>
+                <option value="iris">iris</option>
+                <option value="buttercup">ranúnculo</option>
+                <option value="catkin">amento</option>
+                <option value="raceme">racimo</option>
+                <option value="cone">cono</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Color de las flores</span>
+              <select id="flower-palette">
+                <option value="creamCoral">coral</option>
+                <option value="butterAmber">ámbar</option>
+                <option value="blushRose">rosa</option>
+                <option value="peachApricot">durazno</option>
+                <option value="ivoryGold">marfil</option>
+                <option value="softBrick">terracota</option>
+                <option value="snowBell">nieve</option>
+                <option value="citrusBloom">limón</option>
+                <option value="wineBerry">vino</option>
+                <option value="skyMist">celeste</option>
+                <option value="clayBlush">arcilla</option>
+                <option value="honeyDew">miel</option>
+              </select>
+            </label>
+            <div class="btn-row">
+              <button type="button" id="randomize-style">Estilo al azar</button>
+            </div>
+          </section>
+
+          <section
+            id="panel-leaves"
+            class="controls-panel"
+            data-panel="leaves"
+            role="tabpanel"
+            hidden
+          >
+            <label class="field">
+              <span>Forma de la hoja</span>
+              <select id="leaf-style-alt">
+                <option value="oval">ovalada</option>
+                <option value="lance">lanceolada</option>
+                <option value="teardrop">lágrima</option>
+                <option value="needle">aguja</option>
+                <option value="round">redonda</option>
+                <option value="heart">corazón</option>
+                <option value="lobed">lobulada</option>
+                <option value="fan">abanico</option>
+                <option value="sickle">en hoz</option>
+                <option value="diamond">puntiaguda</option>
+                <option value="spatulate">espatulada</option>
+                <option value="arrow">en flecha</option>
+                <option value="scallop">festoneada</option>
+                <option value="trifoil">trébol</option>
+                <option value="spray">ramillete</option>
+                <option value="bunch">manojo</option>
+                <option value="willow">sauce</option>
+                <option value="pinnate">compuesta</option>
+                <option value="frond">fronda</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Color de las hojas</span>
+              <select id="leaf-palette-alt">
+                <option value="olive">olivo</option>
+                <option value="sage">salvia</option>
+                <option value="jade">jade</option>
+                <option value="copper">cobre</option>
+                <option value="autumn">otoño</option>
+                <option value="seaGlass">verde mar</option>
+                <option value="moss">musgo</option>
+              </select>
+            </label>
+            <div id="leaf-sliders" class="sliders"></div>
+          </section>
+
+          <section
+            id="panel-bloom"
+            class="controls-panel"
+            data-panel="bloom"
+            role="tabpanel"
+            hidden
+          >
+            <div id="flower-sliders" class="sliders"></div>
+            <div id="flower-sliders-adv" class="sliders"></div>
+          </section>
+
+          <section
+            id="panel-wind"
+            class="controls-panel"
+            data-panel="wind"
+            role="tabpanel"
+            hidden
+          >
+            <div id="wind-sliders" class="sliders"></div>
+          </section>
+        </div>
+      </aside>
+
+      <nav id="tools" class="tools" role="toolbar" aria-label="Herramientas">
+        <div class="tool-slot">
+        <div id="grow-tool-menu" class="tool-menu" hidden>
+          <label class="slider">
+            <span class="label">Grosor</span>
+            <span class="value" id="grow-girth-readout">1</span>
+            <input
+              id="grow-girth"
+              type="range"
+              min="0.45"
+              max="1.7"
+              step="0.05"
+              value="1"
+              aria-label="Grosor de la madera"
+            />
+          </label>
+          <label class="slider">
+            <span class="label">Largo</span>
+            <span class="value" id="grow-length-readout">12</span>
+            <input
+              id="grow-length"
+              type="range"
+              min="4"
+              max="28"
+              step="0.5"
+              value="12"
+              aria-label="Largo de los tramos"
+            />
+          </label>
+          <button
+            type="button"
+            id="wood-color-random"
+            class="tool-menu-btn"
+            title="Otro color de tronco"
+          >
+            Color
+          </button>
+        </div>
+        <button
+          type="button"
+          class="tool-btn"
+          data-tool="grow"
+          aria-pressed="false"
+          aria-controls="grow-tool-menu"
+          aria-expanded="false"
+          title="Haz clic o arrastra para que crezca. Toca de nuevo para soltar."
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 20.5V11"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+            <path
+              d="M12 12.2c-2.4-1.6-4-3.8-4.2-6.4 2.8.3 4.8 2 6.2 4.4 1.2-2.2 3-3.8 5.4-4.4-.6 2.8-2.4 4.9-5 6.4"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.55"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="tool-label">Crecer</span>
+        </button>
+        </div>
+        <div class="tool-slot">
+        <div id="leaf-tool-menu" class="tool-menu" hidden>
+          <label class="slider">
+            <span class="label">Tamaño</span>
+            <span class="value" id="leaf-size-readout">1</span>
+            <input
+              id="leaf-size"
+              type="range"
+              min="0.45"
+              max="2.2"
+              step="0.05"
+              value="1"
+              aria-label="Tamaño de las hojas"
+            />
+          </label>
+          <label class="slider">
+            <span class="label">Cantidad</span>
+            <span class="value" id="leaf-density-readout">1</span>
+            <input
+              id="leaf-density-tool"
+              type="range"
+              min="0.2"
+              max="2.8"
+              step="0.05"
+              value="1"
+              aria-label="Cuántas hojas"
+            />
+          </label>
+          <div class="tool-menu-actions">
+            <button
+              type="button"
+              id="leaf-style-random"
+              class="tool-menu-btn"
+              title="Otra forma"
+            >
+              Tipo
+            </button>
+            <button
+              type="button"
+              id="leaf-palette-random"
+              class="tool-menu-btn"
+              title="Otro color"
+            >
+              Color
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="tool-btn"
+          data-tool="leaves"
+          aria-pressed="false"
+          aria-controls="leaf-tool-menu"
+          aria-expanded="false"
+          title="Arrastra para poner hojas. Toca de nuevo para soltar."
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 20.5c-3.6 0-6.2-2.2-6.2-5.4 0-3.4 2.4-5.9 5-8.4.4-.4 1-.4 1.4 0 2.6 2.5 5 5 5 8.4 0 3.2-2.6 5.4-6.2 5.4Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M12 20.5V11.2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.55"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="tool-label">Hojas</span>
+        </button>
+        </div>
+        <button
+          type="button"
+          class="tool-btn"
+          data-tool="cut"
+          aria-pressed="false"
+          title="Haz clic para cortar una rama. Toca de nuevo para soltar."
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle
+              cx="6.2"
+              cy="6.2"
+              r="2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <circle
+              cx="6.2"
+              cy="17.8"
+              r="2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <path
+              d="M8 7.5 19 16.5M8 16.5 19 7.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="tool-label">Cortar</span>
+        </button>
+        <div class="tool-slot">
+        <div id="flower-tool-menu" class="tool-menu" hidden>
+          <label class="slider">
+            <span class="label">Tamaño</span>
+            <span class="value" id="flower-size-readout">1</span>
+            <input
+              id="flower-size"
+              type="range"
+              min="0.25"
+              max="3"
+              step="0.05"
+              value="1"
+              aria-label="Tamaño de las flores"
+            />
+          </label>
+          <label class="slider">
+            <span class="label">Cantidad</span>
+            <span class="value" id="flower-density-readout">1</span>
+            <input
+              id="flower-density-tool"
+              type="range"
+              min="0.2"
+              max="2.8"
+              step="0.05"
+              value="1"
+              aria-label="Cuántas flores"
+            />
+          </label>
+          <div class="tool-menu-actions">
+            <button
+              type="button"
+              id="flower-style-random"
+              class="tool-menu-btn"
+              title="Otra forma"
+            >
+              Tipo
+            </button>
+            <button
+              type="button"
+              id="flower-palette-random"
+              class="tool-menu-btn"
+              title="Otro color"
+            >
+              Color
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="tool-btn"
+          data-tool="flower"
+          aria-pressed="false"
+          aria-controls="flower-tool-menu"
+          aria-expanded="false"
+          title="Haz clic para poner una flor. Toca de nuevo para soltar."
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="2.1" fill="currentColor" />
+            <path
+              d="M12 4.2c1.4 1.6 1.8 3.2 1.2 4.6-1.2-.4-2.2-1.2-3-2.4.4-1 .9-1.7 1.8-2.2ZM19.8 12c-1.6 1.4-3.2 1.8-4.6 1.2.4-1.2 1.2-2.2 2.4-3 1 .4 1.7.9 2.2 1.8ZM12 19.8c-1.4-1.6-1.8-3.2-1.2-4.6 1.2.4 2.2 1.2 3 2.4-.4 1-.9 1.7-1.8 2.2ZM4.2 12c1.6-1.4 3.2-1.8 4.6-1.2-.4 1.2-1.2 2.2-2.4 3-1-.4-1.7-.9-2.2-1.8Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.45"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="tool-label">Flores</span>
+        </button>
+        </div>
+        <button
+          type="button"
+          id="style-random"
+          class="tool-btn tool-action"
+          title="Otro estilo: tronco, hojas y flores, con tamaño y cantidad"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 21v-6.2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+            <path
+              d="M12 14.8c-3.4-.2-5.8-2.4-5.8-5.2C6.2 6.4 8.8 4.2 12 3.5c3.2.7 5.8 2.9 5.8 6.1 0 2.8-2.4 5-5.8 5.2Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="tool-label">Estilo</span>
+        </button>
+        <button
+          type="button"
+          id="reseed"
+          class="tool-btn tool-action"
+          title="Borra esta y planta otra al azar"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 20.8c-2.5 0-4.3-1.9-4.5-4.6-.3-3.2 1.2-6.2 4.5-7.8 3.3 1.6 4.8 4.6 4.5 7.8-.2 2.7-2 4.6-4.5 4.6Z"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M12 8.8c.2 2.4 0 5.2-.7 7.6"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.45"
+              stroke-linecap="round"
+            />
+            <path
+              d="M12 8.6V4.8"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+            <path
+              d="M12 6.4c1.7-.7 2.9-1.7 3.3-3.1-1.6.5-2.6 1.3-3.3 2.5"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span class="tool-label">Otra</span>
+        </button>
+      </nav>
+
+      <div id="tool-cursor" class="tool-cursor" hidden aria-hidden="true">
+        <svg data-glyph="grow" viewBox="0 0 24 24">
+          <path
+            d="M12 20.5V11"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <path
+            d="M12 12.2c-2.4-1.6-4-3.8-4.2-6.4 2.8.3 4.8 2 6.2 4.4 1.2-2.2 3-3.8 5.4-4.4-.6 2.8-2.4 4.9-5 6.4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.55"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <svg data-glyph="leaves" viewBox="0 0 24 24">
+          <path
+            d="M12 20.5c-3.6 0-6.2-2.2-6.2-5.4 0-3.4 2.4-5.9 5-8.4.4-.4 1-.4 1.4 0 2.6 2.5 5 5 5 8.4 0 3.2-2.6 5.4-6.2 5.4Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M12 20.5V11.2"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.55"
+            stroke-linecap="round"
+          />
+        </svg>
+        <svg data-glyph="cut" viewBox="0 0 24 24">
+          <circle
+            cx="6.2"
+            cy="6.2"
+            r="2"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+          />
+          <circle
+            cx="6.2"
+            cy="17.8"
+            r="2"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+          />
+          <path
+            d="M8 7.5 19 16.5M8 16.5 19 7.5"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+        </svg>
+        <svg data-glyph="flower" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="2.1" fill="currentColor" />
+          <path
+            d="M12 4.2c1.4 1.6 1.8 3.2 1.2 4.6-1.2-.4-2.2-1.2-3-2.4.4-1 .9-1.7 1.8-2.2ZM19.8 12c-1.6 1.4-3.2 1.8-4.6 1.2.4-1.2 1.2-2.2 2.4-3 1 .4 1.7.9 2.2 1.8ZM12 19.8c-1.4-1.6-1.8-3.2-1.2-4.6 1.2.4 2.2 1.2 3 2.4-.4 1-.9 1.7-1.8 2.2ZM4.2 12c1.6-1.4 3.2-1.8 4.6-1.2-.4 1.2-1.2 2.2-2.4 3-1-.4-1.7-.9-2.2-1.8Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.45"
+            stroke-linejoin="round"
+          />
+        </svg>
+      </div>
+
+      <canvas id="stage" aria-label="La planta"></canvas>
+      <footer class="meta collapsed">
+        <div class="meta-stats">
+          <span id="stat-fps">-- fps</span>
+          <span id="stat-nodes">0 árboles · 0 tramos</span>
+          <span id="stat-tips">0 puntas · 0 hojas · 0 flores</span>
+        </div>
+        <div class="meta-actions">
+          <button
+            type="button"
+            id="meta-toggle"
+            class="meta-toggle"
+            aria-label="Mostrar los números"
+            aria-expanded="false"
+          >
+            &lt;&lt;
+          </button>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
