@@ -708,6 +708,11 @@ body {
   margin-left: 0;
 }
 
+.tool-btn:disabled {
+  opacity: 0.22;
+  cursor: default;
+}
+
 .tool-btn.tool-action:hover {
   opacity: 1;
 }

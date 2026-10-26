@@ -261,14 +261,17 @@ export class WoodCache {
   /**
    * `dest` is the main canvas context, still in CSS pixels (scaled by `dpr`).
    * The blit switches to device pixels for the copy, then restores that transform.
+   * `zoom` rebakes at the sharper scale and shifts the copy so the view stays centered.
    */
   render(
     dest: CanvasRenderingContext2D,
     strands: readonly WoodStrand[],
     fill: string,
     dpr: number,
+    zoom = 1,
   ): void {
-    if (!(dpr > 0) || !Number.isFinite(dpr)) {
+    const bake = dpr * zoom;
+    if (!(dpr > 0) || !Number.isFinite(bake)) {
       drawDirect(dest, strands, fill);
       return;
     }
@@ -276,8 +279,8 @@ export class WoodCache {
       drawDirect(dest, strands, fill);
       return;
     }
-    if (this.dpr !== dpr) {
-      this.dpr = dpr;
+    if (this.dpr !== bake) {
+      this.dpr = bake;
       this.sprites = new Map();
       this.order = [];
       this.composite = null;
@@ -310,7 +313,7 @@ export class WoodCache {
             y1: 0,
           };
         }
-        if (!this.bake(slot, strand.pts, fill, dpr)) {
+        if (!this.bake(slot, strand.pts, fill, this.dpr)) {
           this.unsupported = true;
           this.sprites = new Map();
           this.order = [];
@@ -348,7 +351,7 @@ export class WoodCache {
       drawDirect(dest, strands, fill);
       return;
     }
-    this.blit(dest);
+    this.blit(dest, zoom);
   }
 
   private bake(
@@ -463,10 +466,12 @@ export class WoodCache {
     return true;
   }
 
-  private blit(dest: CanvasRenderingContext2D): void {
+  private blit(dest: CanvasRenderingContext2D, zoom: number): void {
     if (!this.composite || this.compW === 0 || this.compH === 0) return;
+    const ox = (dest.canvas.width / 2) * (1 - zoom);
+    const oy = (dest.canvas.height / 2) * (1 - zoom);
     dest.save();
-    dest.setTransform(1, 0, 0, 1, 0, 0);
+    dest.setTransform(1, 0, 0, 1, ox, oy);
     dest.imageSmoothingEnabled = false;
     dest.drawImage(this.composite, this.compX0, this.compY0);
     dest.restore();

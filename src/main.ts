@@ -42,6 +42,8 @@ const fpsEl = document.querySelector<HTMLElement>("#stat-fps")!;
 const nodesEl = document.querySelector<HTMLElement>("#stat-nodes")!;
 const tipsEl = document.querySelector<HTMLElement>("#stat-tips")!;
 const reseedBtn = document.querySelector<HTMLButtonElement>("#reseed")!;
+const zoomInBtn = document.querySelector<HTMLButtonElement>("#zoom-in")!;
+const zoomOutBtn = document.querySelector<HTMLButtonElement>("#zoom-out")!;
 const styleRandomBtn = document.querySelector<HTMLButtonElement>("#style-random")!;
 const metaEl = document.querySelector<HTMLElement>(".meta")!;
 const metaToggleBtn =
@@ -1697,9 +1699,7 @@ function reseedSingle(): void {
 }
 
 function plantAt(clientX: number, clientY: number): void {
-  const rect = canvas.getBoundingClientRect();
-  const x = ((clientX - rect.left) / rect.width) * innerWidth;
-  const y = ((clientY - rect.top) / rect.height) * innerHeight;
+  const { x, y } = canvasPoint(clientX, clientY);
   if (trees.length >= MAX_TREES) trees.shift();
   const t = createTreeAt(x, y);
   trees.push(t);
@@ -2093,7 +2093,7 @@ const timingSliderDefs: SliderDef[] = [
   {
     key: "branchFadeRate",
     label: "Desvanecerse",
-    tip: "Qué tan rápido desaparece una rama al cortarla o al morir.",
+    tip: "Qué tan rápido desaparece una rama al podarla o al morir.",
     min: 0.05,
     max: 0.6,
     step: 0.01,
@@ -2991,7 +2991,8 @@ function drawLeaf(
   const sin = Math.sin(angle);
 
   if (sx > 0 && sy > 0) {
-    c.setTransform(
+    setDeviceTransform(
+      c,
       dpr * cos * sx,
       dpr * sin * sx,
       -dpr * sin * sy,
@@ -3006,7 +3007,7 @@ function drawLeaf(
   // A group is several leaflets. One vein across the whole mark would join them.
   if (!leafIsGroup(style)) {
     // Midrib stays in CSS pixels. The fill scale would squash its width.
-    c.setTransform(dpr * cos, dpr * sin, -dpr * sin, dpr * cos, dpr * x, dpr * y);
+    setDeviceTransform(c, dpr * cos, dpr * sin, -dpr * sin, dpr * cos, dpr * x, dpr * y);
     c.beginPath();
     c.moveTo(-shownLen * 0.35, 0);
     c.lineTo(shownLen * 0.4, 0);
@@ -3014,7 +3015,7 @@ function drawLeaf(
     c.lineWidth = 0.6;
     c.stroke();
   }
-  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  setDeviceTransform(c, dpr, 0, 0, dpr, 0, 0);
 }
 
 function pushGlLeaf(
@@ -3932,7 +3933,69 @@ function drawFluidWood(
     cache = new WoodCache();
     woodCaches.set(tree, cache);
   }
-  cache.render(c, strands, fill, dpr);
+  cache.render(c, strands, fill, dpr, viewZoom);
+}
+
+const ZOOM_MIN = 0.55;
+const ZOOM_MAX = 2.75;
+const ZOOM_STEP = 1.25;
+let viewZoom = 1;
+
+/** Device-pixel shift that keeps zoom centered on the screen. */
+function viewOrigin(): { x: number; y: number } {
+  return {
+    x: (canvas.width / 2) * (1 - viewZoom),
+    y: (canvas.height / 2) * (1 - viewZoom),
+  };
+}
+
+/** World CSS transform, then zoom about the screen center. */
+function setDeviceTransform(
+  target: CanvasRenderingContext2D,
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+  e: number,
+  f: number,
+): void {
+  const origin = viewOrigin();
+  target.setTransform(
+    a * viewZoom,
+    b * viewZoom,
+    c * viewZoom,
+    d * viewZoom,
+    e * viewZoom + origin.x,
+    f * viewZoom + origin.y,
+  );
+}
+
+/** Unzoomed screen. The wash stays put while the garden scales. */
+function setScreenView(): void {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function applyBaseView(): void {
+  setDeviceTransform(ctx, dpr, 0, 0, dpr, 0, 0);
+}
+
+/** Opaque canvas clears to black, so zoomed-out margins need a real fill. */
+function paintDeviceMist(): void {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#dfe8df";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+}
+
+function syncZoomButtons(): void {
+  zoomInBtn.disabled = viewZoom >= ZOOM_MAX - 1e-4;
+  zoomOutBtn.disabled = viewZoom <= ZOOM_MIN + 1e-4;
+}
+
+function setViewZoom(next: number): void {
+  viewZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
+  syncZoomButtons();
 }
 
 function resize(): void {
@@ -3944,11 +4007,12 @@ function resize(): void {
   canvas.height = Math.floor(h * dpr);
   canvas.style.width = `${w}px`;
   canvas.style.height = `${h}px`;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   stageBackdrop = null;
   foliage.resize(w, h, dpr);
 
   for (const t of trees) t.resize(w, h);
+  paintDeviceMist();
+  setScreenView();
   paintStageBackdrop(ctx, w, h);
 }
 
@@ -4238,7 +4302,11 @@ function draw(): void {
   const w = innerWidth;
   const h = innerHeight;
 
+  foliage.setZoom(viewZoom);
+  paintDeviceMist();
+  setScreenView();
   paintStageBackdrop(ctx, w, h);
+  applyBaseView();
 
   for (const tree of trees) {
     drawZenGroundGlow(ctx, tree, w, h);
@@ -4429,6 +4497,15 @@ setMetaCollapsed(true);
 reseedBtn.addEventListener("click", () => {
   randomizeParams();
 });
+
+zoomInBtn.addEventListener("click", () => {
+  setViewZoom(viewZoom * ZOOM_STEP);
+});
+
+zoomOutBtn.addEventListener("click", () => {
+  setViewZoom(viewZoom / ZOOM_STEP);
+});
+syncZoomButtons();
 
 styleRandomBtn.addEventListener("click", () => {
   randomizeFullStyle();
@@ -4640,9 +4717,13 @@ function canvasPoint(
   const width = canvas.width / dpr;
   const height = canvas.height / dpr;
   if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
+  const sx = ((clientX - rect.left) / rect.width) * width;
+  const sy = ((clientY - rect.top) / rect.height) * height;
+  const cx = width / 2;
+  const cy = height / 2;
   return {
-    x: ((clientX - rect.left) / rect.width) * width,
-    y: ((clientY - rect.top) / rect.height) * height,
+    x: (sx - cx) / viewZoom + cx,
+    y: (sy - cy) / viewZoom + cy,
   };
 }
 
@@ -4963,6 +5044,7 @@ function setStageTool(next: StageTool | null): void {
   if (next) toolCursor.dataset.tool = next;
   else delete toolCursor.dataset.tool;
   for (const btn of toolButtons) {
+    if (!btn.dataset.tool) continue;
     const on = btn.dataset.tool === next;
     btn.classList.toggle("active", on);
     btn.setAttribute("aria-pressed", on ? "true" : "false");

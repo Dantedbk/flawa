@@ -239,15 +239,15 @@
           >
             <label class="check">
               <input type="checkbox" id="plant-mode" />
-              <span>Plantar al hacer clic en el suelo vacío</span>
+              <span>Sembrar</span>
             </label>
             <p class="hint">
               La herramienta sigue activa hasta que la tocas de nuevo.
-              Sin herramienta: clic o arrastre hace crecer · Alt hojas · Ctrl corta · Mayús flor.
+              Sin herramienta: clic o arrastre hace crecer · Alt hojas · Ctrl poda · Mayús flor.
             </p>
             <label class="check">
               <input type="checkbox" id="immortal-mode" />
-              <span>Que no se marchite</span>
+              <span>Inmortal</span>
             </label>
             <label
               class="slider threshold"
@@ -636,7 +636,7 @@
           class="tool-btn"
           data-tool="cut"
           aria-pressed="false"
-          title="Haz clic para cortar una rama. Toca de nuevo para soltar."
+          title="Haz clic para podar una rama. Toca de nuevo para soltar."
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <circle
@@ -663,7 +663,7 @@
               stroke-linecap="round"
             />
           </svg>
-          <span class="tool-label">Cortar</span>
+          <span class="tool-label">Podar</span>
         </button>
         <div class="tool-slot">
         <div id="flower-tool-menu" class="tool-menu" hidden>
@@ -762,7 +762,7 @@
           type="button"
           id="reseed"
           class="tool-btn tool-action"
-          title="Borra esta y planta otra al azar"
+          title="Borra esta y resiembra otra al azar"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -795,7 +795,57 @@
               stroke-linejoin="round"
             />
           </svg>
-          <span class="tool-label">Otra</span>
+          <span class="tool-label">Resembrar</span>
+        </button>
+        <button
+          type="button"
+          id="zoom-in"
+          class="tool-btn tool-action"
+          title="Acercar la planta"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle
+              cx="10.5"
+              cy="10.5"
+              r="5.2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <path
+              d="M10.5 8.2v4.6M8.2 10.5h4.6M14.4 14.4 18.2 18.2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="tool-label">Acercar</span>
+        </button>
+        <button
+          type="button"
+          id="zoom-out"
+          class="tool-btn tool-action"
+          title="Alejar la planta"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle
+              cx="10.5"
+              cy="10.5"
+              r="5.2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+            />
+            <path
+              d="M8.2 10.5h4.6M14.4 14.4 18.2 18.2"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+            />
+          </svg>
+          <span class="tool-label">Alejar</span>
         </button>
       </nav>
 
