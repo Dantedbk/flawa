@@ -269,6 +269,8 @@ export class WoodCache {
     fill: string,
     dpr: number,
     zoom = 1,
+    panX = 0,
+    panY = 0,
   ): void {
     const bake = dpr * zoom;
     if (!(dpr > 0) || !Number.isFinite(bake)) {
@@ -351,7 +353,7 @@ export class WoodCache {
       drawDirect(dest, strands, fill);
       return;
     }
-    this.blit(dest, zoom);
+    this.blit(dest, zoom, panX, panY);
   }
 
   private bake(
@@ -466,10 +468,16 @@ export class WoodCache {
     return true;
   }
 
-  private blit(dest: CanvasRenderingContext2D, zoom: number): void {
+  private blit(
+    dest: CanvasRenderingContext2D,
+    zoom: number,
+    panX: number,
+    panY: number,
+  ): void {
     if (!this.composite || this.compW === 0 || this.compH === 0) return;
-    const ox = (dest.canvas.width / 2) * (1 - zoom);
-    const oy = (dest.canvas.height / 2) * (1 - zoom);
+    const dpr = dest.canvas.width / Math.max(1, dest.canvas.clientWidth);
+    const ox = (dest.canvas.width / 2) * (1 - zoom) + panX * dpr;
+    const oy = (dest.canvas.height / 2) * (1 - zoom) + panY * dpr;
     dest.save();
     dest.setTransform(1, 0, 0, 1, ox, oy);
     dest.imageSmoothingEnabled = false;

@@ -597,6 +597,18 @@ body {
   cursor: none;
 }
 
+#stage.pan-armed {
+  cursor: grab;
+}
+
+#stage.pan-armed.pan-dragging {
+  cursor: grabbing;
+}
+
+#stage.pan-armed.tool-armed {
+  cursor: grab;
+}
+
 .tools {
   position: absolute;
   z-index: 4;

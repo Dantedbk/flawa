@@ -44,6 +44,7 @@ const tipsEl = document.querySelector<HTMLElement>("#stat-tips")!;
 const reseedBtn = document.querySelector<HTMLButtonElement>("#reseed")!;
 const zoomInBtn = document.querySelector<HTMLButtonElement>("#zoom-in")!;
 const zoomOutBtn = document.querySelector<HTMLButtonElement>("#zoom-out")!;
+const panToggleBtn = document.querySelector<HTMLButtonElement>("#pan-toggle")!;
 const styleRandomBtn = document.querySelector<HTMLButtonElement>("#style-random")!;
 const metaEl = document.querySelector<HTMLElement>(".meta")!;
 const metaToggleBtn =
@@ -160,6 +161,8 @@ type Flyer = {
   wander: number;
   /** Butterfly wing tint 0..1 (ignored for bees). */
   hue: number;
+  /** Passion-flower garden — giant bumblebee instead of a honeybee. */
+  bumble?: boolean;
 };
 
 const bees: Flyer[] = [];
@@ -376,6 +379,38 @@ function pick<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)]!;
 }
 
+/** Pasiflora is rolled more often than the other shapes in the same list. */
+const PASSIFLORA_STYLE_WEIGHT = 1.5;
+const PASSIFLORA_WILD_WEIGHT = 1;
+
+function pickFlowerStyle(candidates: readonly FlowerStyle[]): FlowerStyle {
+  const extra = !candidates.includes("passiflora");
+  const pool: FlowerStyle[] = extra
+    ? [...candidates, "passiflora"]
+    : [...candidates];
+  let total = 0;
+  for (const style of pool) {
+    total +=
+      style === "passiflora"
+        ? extra
+          ? PASSIFLORA_WILD_WEIGHT
+          : PASSIFLORA_STYLE_WEIGHT
+        : 1;
+  }
+  let r = Math.random() * total;
+  for (const style of pool) {
+    const w =
+      style === "passiflora"
+        ? extra
+          ? PASSIFLORA_WILD_WEIGHT
+          : PASSIFLORA_STYLE_WEIGHT
+        : 1;
+    r -= w;
+    if (r <= 0) return style;
+  }
+  return pool[pool.length - 1]!;
+}
+
 function pickBranching(): {
   name: BranchPattern;
   config: Partial<ColonizationConfig>;
@@ -425,7 +460,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["olive", "sage"],
     leafStyles: ["lance", "oval", "spatulate", "sickle"],
     flowerPalettes: ["ivoryGold", "creamCoral", "honeyDew", "butterAmber"],
-    flowerStyles: ["star", "daisy", "cup"],
+    flowerStyles: ["star", "daisy", "cup", "passiflora"],
     stemStyles: ["smooth", "gnarled", "twiggy"],
     stemPalettes: ["oliveWood", "ash", "cedar"],
   },
@@ -434,7 +469,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["seaGlass", "jade", "sage"],
     leafStyles: ["sickle", "lance", "needle", "teardrop", "willow"],
     flowerPalettes: ["skyMist", "snowBell", "honeyDew"],
-    flowerStyles: ["bell", "tube", "cup", "catkin"],
+    flowerStyles: ["bell", "tube", "cup", "catkin", "passiflora"],
     stemStyles: ["vine", "reed", "smooth"],
     stemPalettes: ["ash", "oliveWood", "paleBirch"],
   },
@@ -443,7 +478,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["jade", "moss", "olive"],
     leafStyles: ["needle", "lance", "spray", "arrow", "teardrop", "frond"],
     flowerPalettes: ["honeyDew", "ivoryGold", "citrusBloom"],
-    flowerStyles: ["tube", "star", "daisy", "cone"],
+    flowerStyles: ["tube", "star", "daisy", "cone", "passiflora"],
     stemStyles: ["reed", "bamboo", "twiggy"],
     stemPalettes: ["cedar", "oliveWood", "charcoal"],
   },
@@ -452,7 +487,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["autumn", "copper"],
     leafStyles: ["fan", "lobed", "heart", "scallop"],
     flowerPalettes: ["butterAmber", "softBrick", "peachApricot", "clayBlush"],
-    flowerStyles: ["buttercup", "pom", "daisy"],
+    flowerStyles: ["buttercup", "pom", "daisy", "passiflora"],
     stemStyles: ["gnarled", "smooth", "birch"],
     stemPalettes: ["walnut", "copperBark", "charcoal"],
   },
@@ -461,7 +496,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["sage", "olive", "jade"],
     leafStyles: ["oval", "spatulate", "bunch", "round", "teardrop", "diamond"],
     flowerPalettes: ["snowBell", "blushRose", "creamCoral", "peachApricot"],
-    flowerStyles: ["cup", "daisy", "buttercup"],
+    flowerStyles: ["cup", "daisy", "buttercup", "passiflora"],
     stemStyles: ["smooth", "birch", "twiggy"],
     stemPalettes: ["ash", "paleBirch", "oliveWood"],
   },
@@ -470,7 +505,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["jade", "olive"],
     leafStyles: ["diamond", "oval", "teardrop", "spatulate"],
     flowerPalettes: ["citrusBloom", "ivoryGold", "honeyDew", "creamCoral"],
-    flowerStyles: ["daisy", "star", "cup"],
+    flowerStyles: ["daisy", "star", "cup", "passiflora"],
     stemStyles: ["smooth", "twiggy", "reed"],
     stemPalettes: ["oliveWood", "cedar", "ash"],
   },
@@ -479,7 +514,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["moss", "olive", "sage"],
     leafStyles: ["scallop", "bunch", "round", "heart", "lobed", "trifoil", "pinnate"],
     flowerPalettes: ["clayBlush", "blushRose", "softBrick", "wineBerry"],
-    flowerStyles: ["bell", "pom", "iris", "cup", "raceme"],
+    flowerStyles: ["bell", "pom", "iris", "cup", "raceme", "passiflora"],
     stemStyles: ["gnarled", "vine", "twiggy"],
     stemPalettes: ["walnut", "charcoal", "cedar"],
   },
@@ -488,7 +523,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["copper", "autumn", "moss"],
     leafStyles: ["trifoil", "heart", "lobed", "fan"],
     flowerPalettes: ["wineBerry", "softBrick", "blushRose", "clayBlush"],
-    flowerStyles: ["iris", "pom", "buttercup"],
+    flowerStyles: ["iris", "pom", "buttercup", "passiflora"],
     stemStyles: ["gnarled", "vine", "smooth"],
     stemPalettes: ["copperBark", "walnut", "charcoal"],
   },
@@ -497,7 +532,7 @@ const lookHarmonies: LookHarmony[] = [
     leafPalettes: ["sage", "olive", "seaGlass"],
     leafStyles: ["willow", "lance", "sickle"],
     flowerPalettes: ["ivoryGold", "honeyDew", "skyMist", "creamCoral"],
-    flowerStyles: ["catkin", "raceme", "bell"],
+    flowerStyles: ["catkin", "raceme", "bell", "passiflora"],
     stemStyles: ["vine", "twiggy", "smooth"],
     stemPalettes: ["ash", "oliveWood", "walnut"],
   },
@@ -583,7 +618,7 @@ function rollLookFromHarmony(
   return {
     leafStyle: pick(h.leafStyles),
     leafPalette: pick(h.leafPalettes),
-    flowerStyle: pick(h.flowerStyles),
+    flowerStyle: pickFlowerStyle(h.flowerStyles),
     flowerPalette: pick(h.flowerPalettes),
     stemStyle: pick(h.stemStyles),
     stemPalette: pick(h.stemPalettes),
@@ -1012,7 +1047,8 @@ function showyFlower(style: FlowerStyle): boolean {
     style === "raceme" ||
     style === "catkin" ||
     style === "pom" ||
-    style === "cone"
+    style === "cone" ||
+    style === "passiflora"
   );
 }
 
@@ -1144,7 +1180,7 @@ function applyTreeKind(kind: TreeKind, jitter = false): void {
         };
     if (chanceAt(0.4)) look.leafStyle = pick(h.leafStyles);
     if (chanceAt(0.4)) look.leafPalette = pick(h.leafPalettes);
-    if (chanceAt(0.4)) look.flowerStyle = pick(h.flowerStyles);
+    if (chanceAt(0.4)) look.flowerStyle = pickFlowerStyle(h.flowerStyles);
     if (chanceAt(0.4)) look.flowerPalette = pick(h.flowerPalettes);
     if (chanceAt(0.4)) look.stemStyle = pick(h.stemStyles);
     if (chanceAt(0.4)) look.stemPalette = pick(h.stemPalettes);
@@ -1579,6 +1615,7 @@ const flowerStyleLabel: Record<string, string> = {
   catkin: "amento",
   raceme: "racimo",
   cone: "cono",
+  passiflora: "pasiflora",
 };
 
 const flowerPaletteLabel: Record<string, string> = {
@@ -2414,6 +2451,13 @@ function clearFalling(): void {
   pollen.length = 0;
 }
 
+function passifloraPollinators(): boolean {
+  for (const tree of trees) {
+    if (tree.phenotype.flowerStyle === "passiflora") return true;
+  }
+  return livePhenotype.flowerStyle === "passiflora";
+}
+
 function gatherFlyerTargets(): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = [];
   for (const tree of trees) {
@@ -2444,27 +2488,39 @@ function gatherFlyerTargets(): { x: number; y: number }[] {
 function spawnFlyerNear(
   target: { x: number; y: number },
   kind: "bee" | "butterfly",
+  bumble = false,
 ): Flyer {
   const ang = Math.random() * Math.PI * 2;
   const dist =
-    kind === "butterfly" ? 40 + Math.random() * 90 : 24 + Math.random() * 60;
+    kind === "butterfly"
+      ? 40 + Math.random() * 90
+      : bumble
+        ? 32 + Math.random() * 70
+        : 24 + Math.random() * 60;
   return {
     x: target.x + Math.cos(ang) * dist,
     y: target.y + Math.sin(ang) * dist,
-    vx: (Math.random() - 0.5) * (kind === "butterfly" ? 18 : 28),
-    vy: (Math.random() - 0.5) * (kind === "butterfly" ? 14 : 24),
+    vx: (Math.random() - 0.5) * (kind === "butterfly" ? 18 : bumble ? 16 : 28),
+    vy: (Math.random() - 0.5) * (kind === "butterfly" ? 14 : bumble ? 14 : 24),
     phase: Math.random() * Math.PI * 2,
     size:
       kind === "butterfly"
         ? 5.2 + Math.random() * 2.8
-        : 2 + Math.random() * 1.2,
+        : bumble
+          ? 5.6 + Math.random() * 2.4
+          : 2 + Math.random() * 1.2,
     orbit:
-      kind === "butterfly" ? 22 + Math.random() * 38 : 14 + Math.random() * 28,
+      kind === "butterfly"
+        ? 22 + Math.random() * 38
+        : bumble
+          ? 20 + Math.random() * 32
+          : 14 + Math.random() * 28,
     tx: target.x,
     ty: target.y,
     retargetAt: 0,
     wander: Math.random() * Math.PI * 2,
     hue: Math.random(),
+    bumble: kind === "bee" && bumble,
   };
 }
 
@@ -2476,10 +2532,15 @@ function syncFlyerPopulation(
   targets: { x: number; y: number }[],
   retargetMin: number,
   retargetSpan: number,
+  bumble = false,
 ): void {
   while (list.length < want) {
     list.push(
-      spawnFlyerNear(targets[(Math.random() * targets.length) | 0]!, kind),
+      spawnFlyerNear(
+        targets[(Math.random() * targets.length) | 0]!,
+        kind,
+        bumble,
+      ),
     );
   }
   while (list.length > want) list.pop();
@@ -2519,7 +2580,16 @@ function syncBeePopulation(now: number): void {
       ? Math.max(1, Math.min(3, 1 + Math.floor(blooms * 0.12)))
       : Math.min(1, trees.length),
   );
-  syncFlyerPopulation(bees, wantBees, "bee", now, targets, 2800, 6200);
+  const bumble = passifloraPollinators();
+  syncFlyerPopulation(bees, wantBees, "bee", now, targets, 2800, 6200, bumble);
+  for (const bee of bees) {
+    bee.bumble = bumble;
+    if (bumble) {
+      if (bee.size < 5.2) bee.size = 5.6 + Math.random() * 2.2;
+    } else if (bee.size > 4) {
+      bee.size = 2 + Math.random() * 1.2;
+    }
+  }
   // Butterflies parked for now.
   butterflies.length = 0;
 }
@@ -2566,17 +2636,42 @@ function stepFlyer(
   f.y += f.vy * sec;
 }
 
+function stepBumblebee(bee: Flyer, dt: number): void {
+  stepFlyer(bee, dt, {
+    seek: 0.34,
+    damp: 0.86,
+    windSail: 14,
+    orbitHz: 2.4,
+    wanderRate: 3.1,
+    jitter: 32,
+    maxSpeed: 46,
+  });
+  const sec = Math.min(0.05, dt / 1000);
+  if (Math.random() < 0.26) {
+    bee.vx += (Math.random() - 0.5) * 140 * sec;
+    bee.vy += (Math.random() - 0.5) * 140 * sec;
+  }
+  if (Math.random() < 0.1) {
+    bee.tx += (Math.random() - 0.5) * 110;
+    bee.ty += (Math.random() - 0.5) * 85;
+  }
+  bee.wander += (Math.random() - 0.5) * 2.8 * sec;
+}
+
 function stepBees(dt: number): void {
   for (const bee of bees) {
-    stepFlyer(bee, dt, {
-      seek: 0.7,
-      damp: 0.95,
-      windSail: 10,
-      orbitHz: 1.05,
-      wanderRate: 1.4,
-      jitter: 12,
-      maxSpeed: 36,
-    });
+    if (bee.bumble) stepBumblebee(bee, dt);
+    else {
+      stepFlyer(bee, dt, {
+        seek: 0.7,
+        damp: 0.95,
+        windSail: 10,
+        orbitHz: 1.05,
+        wanderRate: 1.4,
+        jitter: 12,
+        maxSpeed: 36,
+      });
+    }
   }
   for (const bf of butterflies) {
     stepFlyer(bf, dt, {
@@ -2653,6 +2748,59 @@ function drawBee(c: CanvasRenderingContext2D, bee: Flyer): void {
   c.fillStyle = "rgba(42, 38, 30, 0.8)";
   c.beginPath();
   c.arc(s * 0.8, 0, s * 0.36, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
+function drawBumblebee(c: CanvasRenderingContext2D, bee: Flyer): void {
+  const face = bee.vx >= 0 ? 1 : -1;
+  const wing = 0.45 + 0.55 * Math.sin(pulse * 22 + bee.phase * 4.2);
+  const eyePulse = 0.55 + 0.45 * Math.sin(pulse * 5.8 + bee.phase * 6.1);
+  const s = bee.size;
+  const tau = Math.PI * 2;
+  c.save();
+  c.translate(bee.x, bee.y);
+  c.scale(face, 1);
+  c.fillStyle = `rgba(36, 34, 40, ${0.22 + wing * 0.2})`;
+  c.beginPath();
+  c.ellipse(-s * 0.02, -s * 0.82, s * 1.4, s * 0.58, -0.18, 0, tau);
+  c.fill();
+  c.beginPath();
+  c.ellipse(-s * 0.02, s * 0.82, s * 1.4, s * 0.58, 0.18, 0, tau);
+  c.fill();
+  c.fillStyle = "rgba(14, 12, 16, 0.97)";
+  c.beginPath();
+  c.ellipse(0, 0, s * 1.38, s * 0.8, 0, 0, tau);
+  c.fill();
+  c.fillStyle = "rgba(48, 38, 32, 0.94)";
+  for (let i = 0; i < 4; i++) {
+    const bx = -s * 0.52 + i * s * 0.34;
+    c.beginPath();
+    c.ellipse(bx, 0, s * 0.2, s * 0.8, 0, 0, tau);
+    c.fill();
+  }
+  c.fillStyle = "rgba(22, 18, 20, 0.96)";
+  c.beginPath();
+  c.ellipse(s * 0.08, 0, s * 0.52, s * 0.72, 0, 0, tau);
+  c.fill();
+  c.fillStyle = "rgba(10, 8, 12, 0.98)";
+  c.beginPath();
+  c.arc(s * 0.98, 0, s * 0.44, 0, tau);
+  c.fill();
+  const ex = s * 0.82;
+  const ey = s * 0.15;
+  c.shadowColor = `rgba(220, 36, 28, ${0.75 * eyePulse})`;
+  c.shadowBlur = s * 0.62;
+  c.fillStyle = `rgba(255, 52, 42, ${0.9 * eyePulse})`;
+  c.beginPath();
+  c.arc(ex, -ey, s * 0.12, 0, tau);
+  c.arc(ex, ey, s * 0.12, 0, tau);
+  c.fill();
+  c.shadowBlur = 0;
+  c.fillStyle = `rgba(168, 18, 14, ${0.95})`;
+  c.beginPath();
+  c.arc(ex, -ey, s * 0.055, 0, tau);
+  c.arc(ex, ey, s * 0.055, 0, tau);
   c.fill();
   c.restore();
 }
@@ -2777,7 +2925,10 @@ function drawButterfly(c: CanvasRenderingContext2D, bf: Flyer): void {
 
 function drawFlyers(): void {
   for (const bf of butterflies) drawButterfly(ctx, bf);
-  for (const bee of bees) drawBee(ctx, bee);
+  for (const bee of bees) {
+    if (bee.bumble) drawBumblebee(ctx, bee);
+    else drawBee(ctx, bee);
+  }
 }
 
 function gatherPollenSources(): { x: number; y: number }[] {
@@ -3360,6 +3511,115 @@ function drawOpenBloom(
   stampStamens(c, size * 0.16, count, disc, anther);
 }
 
+/** Passiflora caerulea — ten tepals, banded corona, five anthers, triple stigma. */
+function drawPassifloraBloom(
+  c: CanvasRenderingContext2D,
+  size: number,
+  petals: number,
+  turn: number,
+  alpha: number,
+  hue: number,
+): void {
+  const tau = Math.PI * 2;
+  const t = hue;
+  const tepalFill = `rgba(${Math.round(214 + t * 22)}, ${Math.round(226 + t * 14)}, ${Math.round(204 + t * 12)}, ${alpha * 0.94})`;
+  const petalFill = `rgba(${Math.round(250 - t * 12)}, ${Math.round(252 - t * 8)}, ${Math.round(246 - t * 6)}, ${alpha})`;
+  const maroon = `rgba(${Math.round(96 + t * 22)}, ${Math.round(30 + t * 8)}, ${Math.round(64 + t * 14)}, ${alpha})`;
+  const coronaWhite = `rgba(252, 250, 246, ${alpha * 0.98})`;
+  const violet = `rgba(${Math.round(54 + t * 38)}, ${Math.round(88 + t * 28)}, ${Math.round(204 - t * 35)}, ${alpha})`;
+  const platform = `rgba(${Math.round(162 + t * 18)}, ${Math.round(194 + t * 14)}, ${Math.round(112 + t * 10)}, ${alpha * 0.92})`;
+  const anther = `rgba(${Math.round(186 + t * 16)}, ${Math.round(216 + t * 12)}, ${Math.round(96 + t * 8)}, ${alpha})`;
+  const stigma = `rgba(${Math.round(58 + t * 18)}, ${Math.round(16 + t * 6)}, ${Math.round(46 + t * 10)}, ${alpha})`;
+
+  const tepals = 10;
+  for (let i = 0; i < tepals; i++) {
+    const ang = (i / tepals) * tau + turn;
+    const sepal = i % 2 === 0;
+    c.fillStyle = sepal ? tepalFill : petalFill;
+    stampFlowerShape(
+      c,
+      sepal ? sepalPath : blossomPetal,
+      ang,
+      size * (sepal ? 1.02 : 0.96),
+      size * (sepal ? 0.36 : 0.42),
+      size * 0.06,
+    );
+  }
+
+  const coronaN = 52 + (petals % 7);
+  const r0 = size * 0.24;
+  const r1 = size * 0.36;
+  const r2 = size * 0.5;
+  c.lineCap = "round";
+  for (let i = 0; i < coronaN; i++) {
+    const a = turn + (i / coronaN) * tau;
+    const cx = Math.cos(a);
+    const cy = Math.sin(a);
+    const w = Math.max(0.28, size * 0.016);
+    c.lineWidth = w;
+    c.strokeStyle = maroon;
+    c.beginPath();
+    c.moveTo(cx * r0, cy * r0);
+    c.lineTo(cx * r1, cy * r1);
+    c.stroke();
+    c.strokeStyle = coronaWhite;
+    c.beginPath();
+    c.moveTo(cx * r1, cy * r1);
+    c.lineTo(cx * ((r1 + r2) * 0.5), cy * ((r1 + r2) * 0.5));
+    c.stroke();
+    c.strokeStyle = violet;
+    c.beginPath();
+    c.moveTo(cx * ((r1 + r2) * 0.5), cy * ((r1 + r2) * 0.5));
+    c.lineTo(cx * r2, cy * r2);
+    c.stroke();
+  }
+
+  const nectarN = 14;
+  c.fillStyle = `rgba(48, 36, 52, ${alpha * 0.55})`;
+  for (let i = 0; i < nectarN; i++) {
+    const a = turn + (i / nectarN) * tau;
+    const r = size * 0.19;
+    c.beginPath();
+    c.arc(Math.cos(a) * r, Math.sin(a) * r, size * 0.022, 0, tau);
+    c.fill();
+  }
+
+  c.fillStyle = platform;
+  c.beginPath();
+  c.ellipse(0, size * 0.06, size * 0.2, size * 0.11, 0, 0, tau);
+  c.fill();
+
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * tau + turn;
+    c.save();
+    c.translate(Math.cos(a) * size * 0.1, Math.sin(a) * size * 0.1 + size * 0.04);
+    c.rotate(a);
+    c.fillStyle = anther;
+    c.beginPath();
+    c.ellipse(0, 0, size * 0.15, size * 0.048, 0, 0, tau);
+    c.fill();
+    c.restore();
+  }
+
+  c.strokeStyle = platform;
+  c.lineWidth = Math.max(0.5, size * 0.038);
+  c.lineCap = "round";
+  for (let i = 0; i < 3; i++) {
+    const a = -Math.PI / 2 + (i - 1) * 0.68;
+    const len = size * 0.42;
+    const ex = Math.cos(a) * len * 0.35;
+    const ey = -size * 0.12 + Math.sin(a) * len * 0.35;
+    c.beginPath();
+    c.moveTo(0, size * 0.1);
+    c.lineTo(ex, ey);
+    c.stroke();
+    c.fillStyle = stigma;
+    c.beginPath();
+    c.ellipse(ex, ey, size * 0.065, size * 0.085, a, 0, tau);
+    c.fill();
+  }
+}
+
 /** Three small blossoms on one pedicel — how a twig actually flowers. */
 function drawFlowerCluster(
   c: CanvasRenderingContext2D,
@@ -3641,6 +3901,9 @@ function drawFlower(
       }
       break;
     }
+    case "passiflora":
+      drawPassifloraBloom(c, size * 1.08, petals, turn, alpha, hue);
+      break;
     default:
       // Cherry / apple / hawthorn — five petals, three to a twig.
       drawFlowerCluster(
@@ -3872,6 +4135,8 @@ function strandPoints(
   for (const idx of chain) {
     const n = tree.nodes[idx];
     if (!n) break;
+    // An open tip is stroked on its own, so the limb behind it stays still.
+    if (n.parent !== null && tree.presentedReach(n) < 1) break;
     const t = Math.sqrt(n.mass / maxMass);
     let life = 1;
     let x = n.x;
@@ -3879,14 +4144,14 @@ function strandPoints(
     if (n.parent !== null) {
       const parent = tree.nodes[n.parent];
       if (!parent) break;
-      const grow = SpaceColonizationTree.ease(n.sprout);
+      const presented = tree.presentedReach(n);
       const fade = SpaceColonizationTree.ease(1 - n.wither);
-      life = grow * fade;
-      // Soft extend / retract — stay mostly connected to the parent joint.
+      life = n.wither > 0 ? fade : presented;
+      // The tip travels the whole segment at one speed, then the next begins.
       const reach =
         n.wither > 0
           ? 1 - SpaceColonizationTree.ease(n.wither) * 0.4
-          : 0.88 + 0.12 * grow;
+          : presented;
       x = parent.x + (n.x - parent.x) * reach;
       y = parent.y + (n.y - parent.y) * reach;
     }
@@ -3909,9 +4174,53 @@ function chainBirths(
   for (const idx of chain) {
     const n = tree.nodes[idx];
     if (!n) break;
+    if (n.parent !== null && tree.presentedReach(n) < 1) break;
     births.push(n.birth);
   }
   return births;
+}
+
+/** Solid line from the last settled joint to where the tip has reached. */
+function growingTipStrand(
+  tree: SpaceColonizationTree,
+  chain: readonly number[],
+  wScale: number,
+): WoodStrand | null {
+  for (let i = 0; i < chain.length; i++) {
+    const idx = chain[i];
+    if (idx === undefined) break;
+    const n = tree.nodes[idx];
+    if (!n || n.parent === null) continue;
+    const reach = tree.presentedReach(n);
+    if (reach >= 1) continue;
+    if (reach < 0.004) return null;
+    const parent = tree.nodes[n.parent];
+    if (!parent) return null;
+    const maxMass = tree.maxMass;
+    const ink = (node: (typeof tree.nodes)[number], x: number, y: number) => {
+      const t = Math.sqrt(node.mass / maxMass);
+      return {
+        x,
+        y,
+        w: (1.05 + t * 13.5) * wScale,
+        a: 0.42 + t * 0.4,
+      };
+    };
+    const base = ink(parent, parent.x, parent.y);
+    const tip = ink(
+      n,
+      parent.x + (n.x - parent.x) * reach,
+      parent.y + (n.y - parent.y) * reach,
+    );
+    // A round cap at full width is a blob. Keep the leading edge narrow
+    // until the segment has actually arrived.
+    tip.w = base.w * (0.22 + 0.78 * reach);
+    return {
+      births: [-n.birth - 1],
+      pts: [base, tip],
+    };
+  }
+  return null;
 }
 
 function drawFluidWood(
@@ -3925,21 +4234,27 @@ function drawFluidWood(
   const strands: WoodStrand[] = [];
   forEachBranchStrand(tree, (chain) => {
     const pts = strandPoints(tree, chain, wScale);
-    if (pts.length < 2) return;
-    strands.push({ births: chainBirths(tree, chain), pts });
+    if (pts.length >= 2) {
+      strands.push({ births: chainBirths(tree, chain), pts });
+    }
+    const growing = growingTipStrand(tree, chain, wScale);
+    if (growing) strands.push(growing);
   });
   let cache = woodCaches.get(tree);
   if (!cache) {
     cache = new WoodCache();
     woodCaches.set(tree, cache);
   }
-  cache.render(c, strands, fill, dpr, viewZoom);
+  cache.render(c, strands, fill, dpr, viewZoom, viewPanX, viewPanY);
 }
 
 const ZOOM_MIN = 0.55;
 const ZOOM_MAX = 2.75;
 const ZOOM_STEP = 1.25;
 let viewZoom = 1;
+let viewPanX = 0;
+let viewPanY = 0;
+let viewPanMode = false;
 
 /** Device-pixel shift that keeps zoom centered on the screen. */
 function viewOrigin(): { x: number; y: number } {
@@ -3965,8 +4280,8 @@ function setDeviceTransform(
     b * viewZoom,
     c * viewZoom,
     d * viewZoom,
-    e * viewZoom + origin.x,
-    f * viewZoom + origin.y,
+    e * viewZoom + origin.x + viewPanX * dpr,
+    f * viewZoom + origin.y + viewPanY * dpr,
   );
 }
 
@@ -3996,6 +4311,18 @@ function syncZoomButtons(): void {
 function setViewZoom(next: number): void {
   viewZoom = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, next));
   syncZoomButtons();
+}
+
+function syncPanToggle(): void {
+  const on = viewPanMode;
+  panToggleBtn.classList.toggle("active", on);
+  panToggleBtn.setAttribute("aria-pressed", on ? "true" : "false");
+  canvas.classList.toggle("pan-armed", on);
+}
+
+function setViewPanMode(on: boolean): void {
+  viewPanMode = on;
+  syncPanToggle();
 }
 
 function resize(): void {
@@ -4303,6 +4630,7 @@ function draw(): void {
   const h = innerHeight;
 
   foliage.setZoom(viewZoom);
+  foliage.setPan(viewPanX, viewPanY);
   paintDeviceMist();
   setScreenView();
   paintStageBackdrop(ctx, w, h);
@@ -4424,7 +4752,16 @@ function updateHud(dt: number): void {
   }
   nodesEl.textContent = `${countWord(trees.length, "árbol", "árboles")} · ${countWord(nodes, "tramo", "tramos")} · ${styleLabel}`;
   const flyerBits: string[] = [];
-  if (bees.length > 0) flyerBits.push(countWord(bees.length, "abeja", "abejas"));
+  if (bees.length > 0) {
+    const bumble = bees.some((b) => b.bumble);
+    flyerBits.push(
+      countWord(
+        bees.length,
+        bumble ? "abejorro" : "abeja",
+        bumble ? "abejorros" : "abejas",
+      ),
+    );
+  }
   if (butterflies.length > 0) {
     flyerBits.push(countWord(butterflies.length, "mariposa", "mariposas"));
   }
@@ -4449,6 +4786,7 @@ function frame(now: number): void {
   }
 
   const stepMs = 1000 / Math.max(8, liveStepHz);
+  for (const tree of trees) tree.setSimStepMs(stepMs);
   while (acc >= stepMs) {
     for (const tree of trees) {
       tree.step();
@@ -4506,6 +4844,11 @@ zoomOutBtn.addEventListener("click", () => {
   setViewZoom(viewZoom / ZOOM_STEP);
 });
 syncZoomButtons();
+
+panToggleBtn.addEventListener("click", () => {
+  setViewPanMode(!viewPanMode);
+});
+syncPanToggle();
 
 styleRandomBtn.addEventListener("click", () => {
   randomizeFullStyle();
@@ -4722,8 +5065,8 @@ function canvasPoint(
   const cx = width / 2;
   const cy = height / 2;
   return {
-    x: (sx - cx) / viewZoom + cx,
-    y: (sy - cy) / viewZoom + cy,
+    x: (sx - cx - viewPanX) / viewZoom + cx,
+    y: (sy - cy - viewPanY) / viewZoom + cy,
   };
 }
 
@@ -4749,6 +5092,12 @@ type GrowDrag = {
 };
 
 let growDrag: GrowDrag | null = null;
+type PanDrag = {
+  pointerId: number;
+  lastClientX: number;
+  lastClientY: number;
+};
+let panDrag: PanDrag | null = null;
 const DRAG_THRESHOLD = 10;
 const STEER_INTERVAL_MS = 130;
 const LEAF_PAINT_INTERVAL_MS = 22;
@@ -4760,6 +5109,17 @@ let stageTool: StageTool | null = null;
 let toolPointerX = 0;
 let toolPointerY = 0;
 let toolPointerSeen = false;
+
+function endPanDrag(): void {
+  if (!panDrag) return;
+  canvas.classList.remove("pan-dragging");
+  try {
+    canvas.releasePointerCapture(panDrag.pointerId);
+  } catch {
+    /* already released */
+  }
+  panDrag = null;
+}
 
 function endGrowDrag(): void {
   if (!growDrag) return;
@@ -4921,7 +5281,7 @@ function syncFlowerToolMenu(): void {
 }
 
 function randomizeFlowerStyle(): void {
-  livePhenotype.flowerStyle = pick(flowerStyles);
+  livePhenotype.flowerStyle = pickFlowerStyle(flowerStyles);
   applyLookChange();
 }
 
@@ -5136,6 +5496,18 @@ canvas.addEventListener("pointerdown", (e) => {
     return;
   }
 
+  if (viewPanMode) {
+    panDrag = {
+      pointerId: e.pointerId,
+      lastClientX: e.clientX,
+      lastClientY: e.clientY,
+    };
+    canvas.classList.add("pan-dragging");
+    captureStagePointer(e.pointerId);
+    if (e.pointerType === "touch") e.preventDefault();
+    return;
+  }
+
   const { x, y } = canvasPoint(e.clientX, e.clientY);
   const gesture = gestureFor(e);
   const reach = pointerReach(e, 48);
@@ -5202,6 +5574,13 @@ canvas.addEventListener("pointerdown", (e) => {
 });
 
 canvas.addEventListener("pointermove", (e) => {
+  if (panDrag && e.pointerId === panDrag.pointerId) {
+    viewPanX += e.clientX - panDrag.lastClientX;
+    viewPanY += e.clientY - panDrag.lastClientY;
+    panDrag.lastClientX = e.clientX;
+    panDrag.lastClientY = e.clientY;
+    return;
+  }
   if (!growDrag || e.pointerId !== growDrag.pointerId) return;
   const { x, y } = canvasPoint(e.clientX, e.clientY);
   const dist = Math.hypot(x - growDrag.startX, y - growDrag.startY);
@@ -5278,10 +5657,18 @@ function releaseGrowPointer(e: PointerEvent, allowPlant: boolean): void {
 }
 
 canvas.addEventListener("pointerup", (e) => {
+  if (panDrag && e.pointerId === panDrag.pointerId) {
+    endPanDrag();
+    return;
+  }
   releaseGrowPointer(e, true);
 });
 
 canvas.addEventListener("pointercancel", (e) => {
+  if (panDrag && e.pointerId === panDrag.pointerId) {
+    endPanDrag();
+    return;
+  }
   releaseGrowPointer(e, false);
 });
 

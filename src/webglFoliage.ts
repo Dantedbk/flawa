@@ -44,6 +44,7 @@ const FLOWER_STYLE: Record<FlowerStyle, number> = {
   catkin: 8,
   raceme: 9,
   cone: 10,
+  passiflora: 11,
 };
 
 const VERT = `#version 300 es
@@ -57,6 +58,7 @@ layout(location=5) in vec4 a_extra;
 
 uniform vec2 u_res;
 uniform float u_zoom;
+uniform vec2 u_pan;
 
 out vec2 v_uv;
 out vec4 v_color;
@@ -70,7 +72,7 @@ void main() {
     local.x * a_rot.y + local.y * a_rot.x
   );
   vec2 center = u_res * 0.5;
-  world = (world - center) * u_zoom + center;
+  world = (world - center) * u_zoom + center + u_pan;
   vec2 clip = (world / u_res) * 2.0 - 1.0;
   clip.y *= -1.0;
   gl_Position = vec4(clip, 0.0, 1.0);
@@ -93,6 +95,7 @@ layout(location=5) in vec4 a_extra;
 uniform vec2 u_res;
 uniform float u_pad;
 uniform float u_zoom;
+uniform vec2 u_pan;
 
 out vec2 v_uv;
 out vec4 v_color;
@@ -107,7 +110,7 @@ void main() {
     local.x * a_rot.y + local.y * a_rot.x
   );
   vec2 center = u_res * 0.5;
-  world = (world - center) * u_zoom + center;
+  world = (world - center) * u_zoom + center + u_pan;
   vec2 clip = (world / u_res) * 2.0 - 1.0;
   clip.y *= -1.0;
   gl_Position = vec4(clip, 0.0, 1.0);
@@ -320,6 +323,7 @@ type Program = {
   prog: WebGLProgram;
   uRes: WebGLUniformLocation;
   uZoom: WebGLUniformLocation;
+  uPan: WebGLUniformLocation;
 };
 
 function compile(
@@ -358,8 +362,9 @@ function link(
   }
   const uRes = gl.getUniformLocation(prog, "u_res");
   const uZoom = gl.getUniformLocation(prog, "u_zoom");
-  if (!uRes || !uZoom) throw new Error("view uniforms missing");
-  return { prog, uRes, uZoom };
+  const uPan = gl.getUniformLocation(prog, "u_pan");
+  if (!uRes || !uZoom || !uPan) throw new Error("view uniforms missing");
+  return { prog, uRes, uZoom, uPan };
 }
 
 /** Instanced WebGL2 foliage (leaves, flowers, pollen). */
@@ -389,9 +394,16 @@ export class WebGLFoliage {
   private cssW = 1;
   private cssH = 1;
   private zoom = 1;
+  private panX = 0;
+  private panY = 0;
 
   setZoom(zoom: number): void {
     this.zoom = zoom;
+  }
+
+  setPan(panX: number, panY: number): void {
+    this.panX = panX;
+    this.panY = panY;
   }
 
   constructor(canvas: HTMLCanvasElement) {
@@ -645,6 +657,7 @@ export class WebGLFoliage {
       gl.useProgram(this.leafProg.prog);
       gl.uniform2f(this.leafProg.uRes, this.cssW, this.cssH);
       gl.uniform1f(this.leafProg.uZoom, this.zoom);
+      gl.uniform2f(this.leafProg.uPan, this.panX, this.panY);
       gl.uniform1f(this.leafPadLoc, LEAF_PAD);
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.leafMask);
@@ -668,6 +681,7 @@ export class WebGLFoliage {
       gl.useProgram(this.flowerProg.prog);
       gl.uniform2f(this.flowerProg.uRes, this.cssW, this.cssH);
       gl.uniform1f(this.flowerProg.uZoom, this.zoom);
+      gl.uniform2f(this.flowerProg.uPan, this.panX, this.panY);
       gl.bindVertexArray(this.vaoFlower);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.flowerBuf);
       gl.bufferSubData(
@@ -682,6 +696,7 @@ export class WebGLFoliage {
       gl.useProgram(this.dotProg.prog);
       gl.uniform2f(this.dotProg.uRes, this.cssW, this.cssH);
       gl.uniform1f(this.dotProg.uZoom, this.zoom);
+      gl.uniform2f(this.dotProg.uPan, this.panX, this.panY);
       gl.bindVertexArray(this.vaoDot);
       gl.bindBuffer(gl.ARRAY_BUFFER, this.dotBuf);
       gl.bufferSubData(

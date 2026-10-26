@@ -35,6 +35,11 @@ export type TreeNode = {
   mass: number;
   /** 0→1 grow-in (length/opacity). */
   sprout: number;
+  /**
+   * Wall-clock ms for this segment to extend from its parent to its end.
+   * 0 means the segment is already fully extended.
+   */
+  growSpanMs: number;
   /** 0 = healthy; >0 fading out toward delete at 1. */
   wither: number;
 } & BranchTraits;
@@ -214,7 +219,8 @@ export type FlowerStyle =
   | "buttercup"
   | "catkin"
   | "raceme"
-  | "cone";
+  | "cone"
+  | "passiflora";
 
 export type FlowerPalette =
   | "creamCoral"
@@ -242,6 +248,7 @@ export const flowerStyles: FlowerStyle[] = [
   "catkin",
   "raceme",
   "cone",
+  "passiflora",
 ];
 
 export const leafStyles: LeafStyle[] = [
@@ -683,8 +690,10 @@ export class SpaceColonizationTree {
    * Autonomous tips pay one per sim step and extend when this reaches the cost.
    * A click pays the whole cost, so the grow tool stays immediate.
    */
-  private branchExtendCredit = 9;
-  private static readonly BRANCH_EXTEND_COST = 10;
+  private static readonly BRANCH_EXTEND_COST = 5;
+  private branchExtendCredit = SpaceColonizationTree.BRANCH_EXTEND_COST - 1;
+  /** Sim step length. A segment takes this long per unit of extend cost. */
+  private simStepMs = 1000 / 12;
   /** Let click-driven growth briefly ignore maxNodes. */
   private clickIgnoreCap = false;
   /** Open tips / junctions, cell = max influence distance. */
@@ -1917,10 +1926,13 @@ export class SpaceColonizationTree {
       birth: this.birthCounter++,
       bornAt: performance.now(),
       mass: 1,
-      sprout: 0.42 + Math.random() * 0.12,
+      sprout: 0,
+      growSpanMs: this.growSpanForNewNode(),
       wither: 0,
       ...traits,
     });
+    parent.sprout = 1;
+    parent.growSpanMs = 0;
     parent.children.push(index);
     this.structureRev++;
     this.recomputeMass();
@@ -1979,6 +1991,7 @@ export class SpaceColonizationTree {
           1.5,
         ),
         sprout: 1,
+        growSpanMs: 0,
         wither: 0,
       },
     ];
@@ -2545,7 +2558,7 @@ export class SpaceColonizationTree {
     const tips: number[] = [];
     for (let i = 1; i < this.nodes.length; i++) {
       const n = this.nodes[i];
-      if (n.children.length > 0 || n.wither > 0 || n.sprout <= 0.02) continue;
+      if (n.children.length > 0 || n.wither > 0 || n.sprout < 1) continue;
       if (this.depth(i) < 3) continue;
       tips.push(i);
     }
@@ -2620,7 +2633,7 @@ export class SpaceColonizationTree {
 
     for (let i = 1; i < this.nodes.length; i++) {
       const n = this.nodes[i];
-      const tipReady = n.children.length === 0 ? 0.02 : 0.72;
+      const tipReady = n.children.length === 0 ? 1 : 0.72;
       if (n.wither > 0 || n.sprout < tipReady) continue;
       const td = tipDist[i]!;
       if (td > canopyReach) continue;
@@ -2736,7 +2749,7 @@ export class SpaceColonizationTree {
     const cands: { i: number; score: number; tip: boolean }[] = [];
     for (let i = 1; i < this.nodes.length; i++) {
       const n = this.nodes[i];
-      if (!n || n.wither > 0 || n.sprout < 0.82) continue;
+      if (!n || n.wither > 0 || n.sprout < 1) continue;
       const td = tipDist[i] ?? 99;
       if (td > 1) continue;
       const tip = n.children.length === 0;
@@ -3418,13 +3431,35 @@ export class SpaceColonizationTree {
       birth: this.birthCounter++,
       bornAt: performance.now(),
       mass: 1,
-      sprout: 0.12 + Math.random() * 0.08,
+      sprout: 0,
+      growSpanMs: this.growSpanForNewNode(),
       wither: 0,
       ...traits,
     });
+    parent.sprout = 1;
+    parent.growSpanMs = 0;
     parent.children.push(index);
     this.structureRev++;
     return true;
+  }
+
+  /** How long a segment just created should take to reach its stored end. */
+  private growSpanForNewNode(): number {
+    const step = this.simStepMs > 0 ? this.simStepMs : 1000 / 12;
+    return (
+      step *
+      (this.clickEnergy > 0 ? 1 : SpaceColonizationTree.BRANCH_EXTEND_COST)
+    );
+  }
+
+  /** Fraction of this segment that should be drawn, moving at constant speed. */
+  presentedReach(node: TreeNode, now = performance.now()): number {
+    if (!(node.growSpanMs > 0) || node.wither > 0) return 1;
+    return clamp((now - node.bornAt) / node.growSpanMs, 0, 1);
+  }
+
+  setSimStepMs(ms: number): void {
+    if (ms > 0 && Number.isFinite(ms)) this.simStepMs = ms;
   }
 
   /** Same keep rule the per-frame foliage filter used to apply unconditionally. */
@@ -3477,6 +3512,8 @@ export class SpaceColonizationTree {
         // Ease-in fade — starts soft, finishes cleanly.
         n.wither = Math.min(1, n.wither + fade * (0.7 + n.wither * 0.55));
         if (n.wither >= 1) doomed.push(i);
+      } else if (n.growSpanMs > 0) {
+        n.sprout = clamp((performance.now() - n.bornAt) / n.growSpanMs, 0, 1);
       } else if (n.sprout < 1) {
         // Ease-out grow — quick start, smooth settle.
         n.sprout = Math.min(1, n.sprout + grow * (1.2 - n.sprout * 0.4));
@@ -3681,7 +3718,7 @@ export class SpaceColonizationTree {
     const now = performance.now();
     for (const tip of tips) {
       const n = this.nodes[tip];
-      if (n.wither > 0 || n.sprout < 0.85) continue;
+      if (n.wither > 0 || n.sprout < 1) continue;
       const d = this.depth(tip);
       if (d < 4) continue;
       const distal = (d / maxDepth) ** 2;
