@@ -2537,7 +2537,8 @@ function spawnFlyerNear(
           : 14 + Math.random() * 28,
     tx: target.x,
     ty: target.y,
-    retargetAt: 0,
+    retargetAt:
+      performance.now() + 400 + Math.random() * 2400,
     wander: Math.random() * Math.PI * 2,
     hue: Math.random(),
     bumble: kind === "bee" && bumble,
@@ -2566,17 +2567,13 @@ function syncFlyerPopulation(
   while (list.length > want) list.pop();
   for (const f of list) {
     if (now < f.retargetAt) continue;
-    const scatter = bumble ? 0.55 : 1;
-    const pickBloom = Math.random() < (bumble ? 0.88 : 0.7);
-    if (pickBloom) {
+    if (Math.random() < 0.7) {
       const t = targets[(Math.random() * targets.length) | 0]!;
-      f.tx = t.x + (Math.random() - 0.5) * 36 * scatter;
-      f.ty = t.y + (Math.random() - 0.5) * 36 * scatter;
+      f.tx = t.x + (Math.random() - 0.5) * 36;
+      f.ty = t.y + (Math.random() - 0.5) * 36;
     } else {
-      const driftX = bumble ? 22 : 70;
-      const driftY = bumble ? 18 : 55;
-      f.tx += (Math.random() - 0.5) * driftX * scatter;
-      f.ty += (Math.random() - 0.5) * driftY * scatter;
+      f.tx += (Math.random() - 0.5) * 70;
+      f.ty += (Math.random() - 0.5) * 55;
     }
     f.retargetAt = now + retargetMin + Math.random() * retargetSpan;
   }
@@ -2597,21 +2594,21 @@ function syncBeePopulation(now: number): void {
   let blooms = 0;
   for (const t of trees) blooms += t.flowers.length;
   // Quiet garden: a few bees with long gaps between visits.
+  const bumble = passifloraPollinators();
   const wantBees = Math.min(
     MAX_BEES,
     blooms > 0
       ? Math.max(1, Math.min(3, 1 + Math.floor(blooms * 0.12)))
       : Math.min(1, trees.length),
   );
-  const bumble = passifloraPollinators();
   syncFlyerPopulation(
     bees,
     wantBees,
     "bee",
     now,
     targets,
-    bumble ? 900 : 2800,
-    bumble ? 2200 : 6200,
+    2800,
+    6200,
     bumble,
   );
   for (const bee of bees) {
@@ -2668,36 +2665,53 @@ function stepFlyer(
   f.y += f.vy * sec;
 }
 
-function stepBumblebee(bee: Flyer, dt: number): void {
+type BeeFlightOpts = {
+  seek: number;
+  damp: number;
+  windSail: number;
+  orbitHz: number;
+  wanderRate: number;
+  jitter: number;
+  maxSpeed: number;
+  /** Tighter loops over the bloom (bumble only). */
+  orbitScale?: number;
+  /** Soft pull back when drifting from the aim point (bumble only). */
+  leash?: number;
+};
+
+const HONEY_BEE_FLIGHT: BeeFlightOpts = {
+  seek: 0.7,
+  damp: 0.95,
+  windSail: 10,
+  orbitHz: 1.05,
+  wanderRate: 1.4,
+  jitter: 12,
+  maxSpeed: 36,
+};
+
+const BUMBLE_BEE_FLIGHT: BeeFlightOpts = {
+  seek: 0.92,
+  damp: 0.86,
+  windSail: 6,
+  orbitHz: 5.4,
+  wanderRate: 4.8,
+  jitter: 30,
+  maxSpeed: 54,
+  orbitScale: 0.55,
+  leash: 34,
+};
+
+function stepBeeFlight(bee: Flyer, dt: number, flight: BeeFlightOpts): void {
   const orbit = bee.orbit;
-  bee.orbit = orbit * 0.55;
-  stepFlyer(bee, dt, {
-    seek: 0.92,
-    damp: 0.86,
-    windSail: 6,
-    orbitHz: 5.4,
-    wanderRate: 4.8,
-    jitter: 30,
-    maxSpeed: 54,
-  });
-  bee.orbit = orbit;
+  if (flight.orbitScale) bee.orbit = orbit * flight.orbitScale;
+  stepFlyer(bee, dt, flight);
+  if (flight.orbitScale) bee.orbit = orbit;
+  const leash = flight.leash;
+  if (!leash) return;
   const sec = Math.min(0.05, dt / 1000);
-  const t = pulse * 6.4 + bee.phase;
-  const twitch =
-    Math.sin(t * 1.9) * Math.sin(t * 3.1 + 0.7) +
-    Math.sin(t * 5.4 + bee.phase * 2) * 0.65;
-  bee.vx += twitch * 34 * sec;
-  bee.vy += Math.cos(t * 2.4 + bee.phase * 3.2) * twitch * 30 * sec;
-  bee.wander += (Math.sin(t * 4.2) * 3.2 + Math.cos(t * 1.6)) * sec;
-  const zip = Math.sin(pulse * 1.35 + bee.phase * 8.3);
-  if (zip > 0.82) {
-    bee.tx += Math.sin(bee.phase * 13.7) * 22;
-    bee.ty += Math.cos(bee.phase * 11.3) * 18;
-  }
   const dx = bee.x - bee.tx;
   const dy = bee.y - bee.ty;
   const d = Math.hypot(dx, dy);
-  const leash = 34;
   if (d > leash) {
     const pull = (d - leash) * 3.4 * sec;
     bee.vx -= (dx / d) * pull;
@@ -2707,18 +2721,11 @@ function stepBumblebee(bee: Flyer, dt: number): void {
 
 function stepBees(dt: number): void {
   for (const bee of bees) {
-    if (bee.bumble) stepBumblebee(bee, dt);
-    else {
-      stepFlyer(bee, dt, {
-        seek: 0.7,
-        damp: 0.95,
-        windSail: 10,
-        orbitHz: 1.05,
-        wanderRate: 1.4,
-        jitter: 12,
-        maxSpeed: 36,
-      });
-    }
+    stepBeeFlight(
+      bee,
+      dt,
+      bee.bumble ? BUMBLE_BEE_FLIGHT : HONEY_BEE_FLIGHT,
+    );
   }
   for (const bf of butterflies) {
     stepFlyer(bf, dt, {
@@ -2770,90 +2777,64 @@ function mixRgb(rgb: string, toward: number, t: number): string {
 function drawBee(c: CanvasRenderingContext2D, bee: Flyer): void {
   // Always horizontal — only flip so the head leads travel.
   const face = bee.vx >= 0 ? 1 : -1;
-  const wing = 0.55 + 0.45 * Math.sin(pulse * 28 + bee.phase * 3);
-  const s = bee.size;
-  c.save();
-  c.translate(bee.x, bee.y);
-  c.scale(face, 1);
-  c.fillStyle = `rgba(245, 242, 230, ${0.2 + wing * 0.25})`;
-  c.beginPath();
-  c.ellipse(-s * 0.1, -s * 0.9, s * 1.15, s * 0.5, -0.25, 0, Math.PI * 2);
-  c.fill();
-  c.beginPath();
-  c.ellipse(-s * 0.1, s * 0.9, s * 1.15, s * 0.5, 0.25, 0, Math.PI * 2);
-  c.fill();
-  c.fillStyle = "rgba(196, 148, 52, 0.88)";
-  c.beginPath();
-  c.ellipse(0, 0, s * 1.2, s * 0.62, 0, 0, Math.PI * 2);
-  c.fill();
-  c.strokeStyle = "rgba(36, 32, 24, 0.55)";
-  c.lineWidth = Math.max(0.7, s * 0.28);
-  c.beginPath();
-  c.moveTo(-s * 0.1, -s * 0.4);
-  c.lineTo(-s * 0.1, s * 0.4);
-  c.stroke();
-  c.fillStyle = "rgba(42, 38, 30, 0.8)";
-  c.beginPath();
-  c.arc(s * 0.8, 0, s * 0.36, 0, Math.PI * 2);
-  c.fill();
-  c.restore();
-}
-
-function drawBumblebee(c: CanvasRenderingContext2D, bee: Flyer): void {
-  const face = bee.vx >= 0 ? 1 : -1;
-  const wing = 0.45 + 0.55 * Math.sin(pulse * 34 + bee.phase * 5.6);
-  const eyePulse = 0.55 + 0.45 * Math.sin(pulse * 5.8 + bee.phase * 6.1);
+  const bumble = bee.bumble;
+  const wingHz = bumble ? 34 : 28;
+  const wing = 0.55 + 0.45 * Math.sin(pulse * wingHz + bee.phase * 3);
   const s = bee.size;
   const tau = Math.PI * 2;
   c.save();
   c.translate(bee.x, bee.y);
   c.scale(face, 1);
-  c.fillStyle = `rgba(36, 34, 40, ${0.22 + wing * 0.2})`;
+  if (bumble) {
+    c.fillStyle = `rgba(36, 34, 40, ${0.2 + wing * 0.22})`;
+  } else {
+    c.fillStyle = `rgba(245, 242, 230, ${0.2 + wing * 0.25})`;
+  }
   c.beginPath();
-  c.ellipse(-s * 0.02, -s * 0.82, s * 1.4, s * 0.58, -0.18, 0, tau);
+  c.ellipse(-s * 0.1, -s * 0.9, s * 1.15, s * 0.5, -0.25, 0, tau);
   c.fill();
   c.beginPath();
-  c.ellipse(-s * 0.02, s * 0.82, s * 1.4, s * 0.58, 0.18, 0, tau);
+  c.ellipse(-s * 0.1, s * 0.9, s * 1.15, s * 0.5, 0.25, 0, tau);
   c.fill();
-  c.fillStyle = "rgba(14, 12, 16, 0.97)";
-  c.beginPath();
-  c.ellipse(0, 0, s * 1.38, s * 0.8, 0, 0, tau);
-  c.fill();
-  c.fillStyle = "rgba(48, 38, 32, 0.94)";
-  for (let i = 0; i < 4; i++) {
-    const bx = -s * 0.52 + i * s * 0.34;
+  if (bumble) {
+    c.fillStyle = "rgba(14, 12, 16, 0.97)";
     c.beginPath();
-    c.ellipse(bx, 0, s * 0.2, s * 0.8, 0, 0, tau);
+    c.ellipse(0, 0, s * 1.2, s * 0.7, 0, 0, tau);
+    c.fill();
+    c.strokeStyle = "rgba(48, 38, 32, 0.85)";
+    c.lineWidth = Math.max(0.7, s * 0.22);
+    c.beginPath();
+    c.moveTo(-s * 0.08, -s * 0.42);
+    c.lineTo(-s * 0.08, s * 0.42);
+    c.stroke();
+    c.fillStyle = "rgba(10, 8, 12, 0.98)";
+    c.beginPath();
+    c.arc(s * 0.82, 0, s * 0.38, 0, tau);
+    c.fill();
+    const eyePulse = 0.55 + 0.45 * Math.sin(pulse * 5.8 + bee.phase * 6.1);
+    const ex = s * 0.74;
+    const ey = s * 0.13;
+    c.fillStyle = `rgba(255, 52, 42, ${0.88 * eyePulse})`;
+    c.beginPath();
+    c.arc(ex, -ey, s * 0.1, 0, tau);
+    c.arc(ex, ey, s * 0.1, 0, tau);
+    c.fill();
+  } else {
+    c.fillStyle = "rgba(196, 148, 52, 0.88)";
+    c.beginPath();
+    c.ellipse(0, 0, s * 1.2, s * 0.62, 0, 0, tau);
+    c.fill();
+    c.strokeStyle = "rgba(36, 32, 24, 0.55)";
+    c.lineWidth = Math.max(0.7, s * 0.28);
+    c.beginPath();
+    c.moveTo(-s * 0.1, -s * 0.4);
+    c.lineTo(-s * 0.1, s * 0.4);
+    c.stroke();
+    c.fillStyle = "rgba(42, 38, 30, 0.8)";
+    c.beginPath();
+    c.arc(s * 0.8, 0, s * 0.36, 0, tau);
     c.fill();
   }
-  c.fillStyle = "rgba(22, 18, 20, 0.96)";
-  c.beginPath();
-  c.ellipse(s * 0.08, 0, s * 0.52, s * 0.72, 0, 0, tau);
-  c.fill();
-  c.fillStyle = "rgba(10, 8, 12, 0.98)";
-  c.beginPath();
-  c.arc(s * 0.98, 0, s * 0.44, 0, tau);
-  c.fill();
-  const ex = s * 0.82;
-  const ey = s * 0.15;
-  // Layered fills instead of shadowBlur (shadow forces a costly offscreen pass).
-  const glowA = 0.38 * eyePulse;
-  c.fillStyle = `rgba(220, 36, 28, ${glowA})`;
-  for (const dy of [-ey, ey]) {
-    c.beginPath();
-    c.arc(ex, dy, s * 0.2, 0, tau);
-    c.fill();
-  }
-  c.fillStyle = `rgba(255, 52, 42, ${0.9 * eyePulse})`;
-  c.beginPath();
-  c.arc(ex, -ey, s * 0.12, 0, tau);
-  c.arc(ex, ey, s * 0.12, 0, tau);
-  c.fill();
-  c.fillStyle = `rgba(168, 18, 14, ${0.95})`;
-  c.beginPath();
-  c.arc(ex, -ey, s * 0.055, 0, tau);
-  c.arc(ex, ey, s * 0.055, 0, tau);
-  c.fill();
   c.restore();
 }
 
@@ -2977,10 +2958,7 @@ function drawButterfly(c: CanvasRenderingContext2D, bf: Flyer): void {
 
 function drawFlyers(): void {
   for (const bf of butterflies) drawButterfly(ctx, bf);
-  for (const bee of bees) {
-    if (bee.bumble) drawBumblebee(ctx, bee);
-    else drawBee(ctx, bee);
-  }
+  for (const bee of bees) drawBee(ctx, bee);
 }
 
 function gatherPollenSources(): { x: number; y: number }[] {
@@ -3598,43 +3576,56 @@ function drawPassifloraBloom(
     );
   }
 
-  const coronaN = 52 + (petals % 7);
+  const coronaN = 26 + (petals % 5);
   const r0 = size * 0.24;
   const r1 = size * 0.36;
   const r2 = size * 0.5;
+  const rMid = (r1 + r2) * 0.5;
+  const w = Math.max(0.28, size * 0.016);
   c.lineCap = "round";
+  c.lineWidth = w;
+  c.strokeStyle = maroon;
+  c.beginPath();
   for (let i = 0; i < coronaN; i++) {
     const a = turn + (i / coronaN) * tau;
     const cx = Math.cos(a);
     const cy = Math.sin(a);
-    const w = Math.max(0.28, size * 0.016);
-    c.lineWidth = w;
-    c.strokeStyle = maroon;
-    c.beginPath();
     c.moveTo(cx * r0, cy * r0);
     c.lineTo(cx * r1, cy * r1);
-    c.stroke();
-    c.strokeStyle = coronaWhite;
-    c.beginPath();
-    c.moveTo(cx * r1, cy * r1);
-    c.lineTo(cx * ((r1 + r2) * 0.5), cy * ((r1 + r2) * 0.5));
-    c.stroke();
-    c.strokeStyle = violet;
-    c.beginPath();
-    c.moveTo(cx * ((r1 + r2) * 0.5), cy * ((r1 + r2) * 0.5));
-    c.lineTo(cx * r2, cy * r2);
-    c.stroke();
   }
+  c.stroke();
+  c.strokeStyle = coronaWhite;
+  c.beginPath();
+  for (let i = 0; i < coronaN; i++) {
+    const a = turn + (i / coronaN) * tau;
+    const cx = Math.cos(a);
+    const cy = Math.sin(a);
+    c.moveTo(cx * r1, cy * r1);
+    c.lineTo(cx * rMid, cy * rMid);
+  }
+  c.stroke();
+  c.strokeStyle = violet;
+  c.beginPath();
+  for (let i = 0; i < coronaN; i++) {
+    const a = turn + (i / coronaN) * tau;
+    const cx = Math.cos(a);
+    const cy = Math.sin(a);
+    c.moveTo(cx * rMid, cy * rMid);
+    c.lineTo(cx * r2, cy * r2);
+  }
+  c.stroke();
 
-  const nectarN = 14;
   c.fillStyle = `rgba(48, 36, 52, ${alpha * 0.55})`;
+  c.beginPath();
+  const nectarN = 10;
+  const nectarR = size * 0.19;
+  const dotR = size * 0.022;
   for (let i = 0; i < nectarN; i++) {
     const a = turn + (i / nectarN) * tau;
-    const r = size * 0.19;
-    c.beginPath();
-    c.arc(Math.cos(a) * r, Math.sin(a) * r, size * 0.022, 0, tau);
-    c.fill();
+    c.moveTo(Math.cos(a) * nectarR + dotR, Math.sin(a) * nectarR);
+    c.arc(Math.cos(a) * nectarR, Math.sin(a) * nectarR, dotR, 0, tau);
   }
+  c.fill();
 
   c.fillStyle = platform;
   c.beginPath();
