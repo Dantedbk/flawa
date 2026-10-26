@@ -169,6 +169,10 @@ const bees: Flyer[] = [];
 const butterflies: Flyer[] = [];
 const MAX_BEES = 4;
 const beesEnabled = true;
+/** Cached bloom/crown points for bee targeting — rebuilt on a timer, not every frame. */
+let flyerTargetsCache: { x: number; y: number }[] = [];
+let flyerTargetsAt = 0;
+const FLYER_TARGETS_MS = 600;
 
 /** Soft dust / pollen motes — sparse air life, not weather. */
 type Pollen = {
@@ -2449,6 +2453,8 @@ function clearFalling(): void {
   bees.length = 0;
   butterflies.length = 0;
   pollen.length = 0;
+  flyerTargetsCache.length = 0;
+  flyerTargetsAt = 0;
 }
 
 function passifloraPollinators(): boolean {
@@ -2474,15 +2480,29 @@ function gatherFlyerTargets(): { x: number; y: number }[] {
     }
   }
   if (out.length > 0) return out;
-  // No blooms yet — hover the outer crown.
+  // No blooms yet — sample outer tips (cap work when the crown is huge).
+  const cap = 48;
   for (const tree of trees) {
     for (const n of tree.nodes) {
       if (n.children.length > 0 || n.wither > 0) continue;
       if (n.sprout < 0.5) continue;
       out.push({ x: n.x, y: n.y });
+      if (out.length >= cap) return out;
     }
   }
   return out;
+}
+
+function flyerTargetsFor(now: number): { x: number; y: number }[] {
+  if (
+    flyerTargetsCache.length > 0 &&
+    now - flyerTargetsAt < FLYER_TARGETS_MS
+  ) {
+    return flyerTargetsCache;
+  }
+  flyerTargetsCache = gatherFlyerTargets();
+  flyerTargetsAt = now;
+  return flyerTargetsCache;
 }
 
 function spawnFlyerNear(
@@ -2565,7 +2585,7 @@ function syncBeePopulation(now: number): void {
     butterflies.length = 0;
     return;
   }
-  const targets = gatherFlyerTargets();
+  const targets = flyerTargetsFor(now);
   if (targets.length === 0) {
     bees.length = 0;
     butterflies.length = 0;
@@ -2642,20 +2662,20 @@ function stepBumblebee(bee: Flyer, dt: number): void {
     damp: 0.86,
     windSail: 14,
     orbitHz: 2.4,
-    wanderRate: 3.1,
-    jitter: 32,
-    maxSpeed: 46,
+    wanderRate: 2.4,
+    jitter: 22,
+    maxSpeed: 42,
   });
   const sec = Math.min(0.05, dt / 1000);
-  if (Math.random() < 0.26) {
-    bee.vx += (Math.random() - 0.5) * 140 * sec;
-    bee.vy += (Math.random() - 0.5) * 140 * sec;
+  // Deterministic twitch — avoids per-frame Math.random in the hot loop.
+  const kick =
+    Math.sin(pulse * 4.1 + bee.phase * 5.3) *
+    Math.sin(pulse * 2.7 + bee.phase * 1.9);
+  if (kick > 0.72) {
+    bee.vx += Math.sin(bee.phase * 11 + pulse * 3) * 18 * sec;
+    bee.vy += Math.cos(bee.phase * 9 + pulse * 2.5) * 18 * sec;
   }
-  if (Math.random() < 0.1) {
-    bee.tx += (Math.random() - 0.5) * 110;
-    bee.ty += (Math.random() - 0.5) * 85;
-  }
-  bee.wander += (Math.random() - 0.5) * 2.8 * sec;
+  bee.wander += Math.sin(pulse * 3.3 + bee.phase) * 1.6 * sec;
 }
 
 function stepBees(dt: number): void {
@@ -2789,14 +2809,19 @@ function drawBumblebee(c: CanvasRenderingContext2D, bee: Flyer): void {
   c.fill();
   const ex = s * 0.82;
   const ey = s * 0.15;
-  c.shadowColor = `rgba(220, 36, 28, ${0.75 * eyePulse})`;
-  c.shadowBlur = s * 0.62;
+  // Layered fills instead of shadowBlur (shadow forces a costly offscreen pass).
+  const glowA = 0.38 * eyePulse;
+  c.fillStyle = `rgba(220, 36, 28, ${glowA})`;
+  for (const dy of [-ey, ey]) {
+    c.beginPath();
+    c.arc(ex, dy, s * 0.2, 0, tau);
+    c.fill();
+  }
   c.fillStyle = `rgba(255, 52, 42, ${0.9 * eyePulse})`;
   c.beginPath();
   c.arc(ex, -ey, s * 0.12, 0, tau);
   c.arc(ex, ey, s * 0.12, 0, tau);
   c.fill();
-  c.shadowBlur = 0;
   c.fillStyle = `rgba(168, 18, 14, ${0.95})`;
   c.beginPath();
   c.arc(ex, -ey, s * 0.055, 0, tau);
