@@ -2515,13 +2515,13 @@ function spawnFlyerNear(
     kind === "butterfly"
       ? 40 + Math.random() * 90
       : bumble
-        ? 32 + Math.random() * 70
+        ? 12 + Math.random() * 28
         : 24 + Math.random() * 60;
   return {
     x: target.x + Math.cos(ang) * dist,
     y: target.y + Math.sin(ang) * dist,
-    vx: (Math.random() - 0.5) * (kind === "butterfly" ? 18 : bumble ? 16 : 28),
-    vy: (Math.random() - 0.5) * (kind === "butterfly" ? 14 : bumble ? 14 : 24),
+    vx: (Math.random() - 0.5) * (kind === "butterfly" ? 18 : bumble ? 34 : 28),
+    vy: (Math.random() - 0.5) * (kind === "butterfly" ? 14 : bumble ? 30 : 24),
     phase: Math.random() * Math.PI * 2,
     size:
       kind === "butterfly"
@@ -2533,7 +2533,7 @@ function spawnFlyerNear(
       kind === "butterfly"
         ? 22 + Math.random() * 38
         : bumble
-          ? 20 + Math.random() * 32
+          ? 9 + Math.random() * 14
           : 14 + Math.random() * 28,
     tx: target.x,
     ty: target.y,
@@ -2566,14 +2566,17 @@ function syncFlyerPopulation(
   while (list.length > want) list.pop();
   for (const f of list) {
     if (now < f.retargetAt) continue;
-    // Often pick a fresh bloom; sometimes just drift to a nearby offset.
-    if (Math.random() < 0.7) {
+    const scatter = bumble ? 0.55 : 1;
+    const pickBloom = Math.random() < (bumble ? 0.88 : 0.7);
+    if (pickBloom) {
       const t = targets[(Math.random() * targets.length) | 0]!;
-      f.tx = t.x + (Math.random() - 0.5) * 36;
-      f.ty = t.y + (Math.random() - 0.5) * 36;
+      f.tx = t.x + (Math.random() - 0.5) * 36 * scatter;
+      f.ty = t.y + (Math.random() - 0.5) * 36 * scatter;
     } else {
-      f.tx += (Math.random() - 0.5) * 70;
-      f.ty += (Math.random() - 0.5) * 55;
+      const driftX = bumble ? 22 : 70;
+      const driftY = bumble ? 18 : 55;
+      f.tx += (Math.random() - 0.5) * driftX * scatter;
+      f.ty += (Math.random() - 0.5) * driftY * scatter;
     }
     f.retargetAt = now + retargetMin + Math.random() * retargetSpan;
   }
@@ -2601,7 +2604,16 @@ function syncBeePopulation(now: number): void {
       : Math.min(1, trees.length),
   );
   const bumble = passifloraPollinators();
-  syncFlyerPopulation(bees, wantBees, "bee", now, targets, 2800, 6200, bumble);
+  syncFlyerPopulation(
+    bees,
+    wantBees,
+    "bee",
+    now,
+    targets,
+    bumble ? 900 : 2800,
+    bumble ? 2200 : 6200,
+    bumble,
+  );
   for (const bee of bees) {
     bee.bumble = bumble;
     if (bumble) {
@@ -2657,25 +2669,40 @@ function stepFlyer(
 }
 
 function stepBumblebee(bee: Flyer, dt: number): void {
+  const orbit = bee.orbit;
+  bee.orbit = orbit * 0.55;
   stepFlyer(bee, dt, {
-    seek: 0.34,
+    seek: 0.92,
     damp: 0.86,
-    windSail: 14,
-    orbitHz: 2.4,
-    wanderRate: 2.4,
-    jitter: 22,
-    maxSpeed: 42,
+    windSail: 6,
+    orbitHz: 5.4,
+    wanderRate: 4.8,
+    jitter: 30,
+    maxSpeed: 54,
   });
+  bee.orbit = orbit;
   const sec = Math.min(0.05, dt / 1000);
-  // Deterministic twitch — avoids per-frame Math.random in the hot loop.
-  const kick =
-    Math.sin(pulse * 4.1 + bee.phase * 5.3) *
-    Math.sin(pulse * 2.7 + bee.phase * 1.9);
-  if (kick > 0.72) {
-    bee.vx += Math.sin(bee.phase * 11 + pulse * 3) * 18 * sec;
-    bee.vy += Math.cos(bee.phase * 9 + pulse * 2.5) * 18 * sec;
+  const t = pulse * 6.4 + bee.phase;
+  const twitch =
+    Math.sin(t * 1.9) * Math.sin(t * 3.1 + 0.7) +
+    Math.sin(t * 5.4 + bee.phase * 2) * 0.65;
+  bee.vx += twitch * 34 * sec;
+  bee.vy += Math.cos(t * 2.4 + bee.phase * 3.2) * twitch * 30 * sec;
+  bee.wander += (Math.sin(t * 4.2) * 3.2 + Math.cos(t * 1.6)) * sec;
+  const zip = Math.sin(pulse * 1.35 + bee.phase * 8.3);
+  if (zip > 0.82) {
+    bee.tx += Math.sin(bee.phase * 13.7) * 22;
+    bee.ty += Math.cos(bee.phase * 11.3) * 18;
   }
-  bee.wander += Math.sin(pulse * 3.3 + bee.phase) * 1.6 * sec;
+  const dx = bee.x - bee.tx;
+  const dy = bee.y - bee.ty;
+  const d = Math.hypot(dx, dy);
+  const leash = 34;
+  if (d > leash) {
+    const pull = (d - leash) * 3.4 * sec;
+    bee.vx -= (dx / d) * pull;
+    bee.vy -= (dy / d) * pull;
+  }
 }
 
 function stepBees(dt: number): void {
@@ -2774,7 +2801,7 @@ function drawBee(c: CanvasRenderingContext2D, bee: Flyer): void {
 
 function drawBumblebee(c: CanvasRenderingContext2D, bee: Flyer): void {
   const face = bee.vx >= 0 ? 1 : -1;
-  const wing = 0.45 + 0.55 * Math.sin(pulse * 22 + bee.phase * 4.2);
+  const wing = 0.45 + 0.55 * Math.sin(pulse * 34 + bee.phase * 5.6);
   const eyePulse = 0.55 + 0.45 * Math.sin(pulse * 5.8 + bee.phase * 6.1);
   const s = bee.size;
   const tau = Math.PI * 2;
