@@ -370,7 +370,7 @@ function stepFalling(dt: number, height: number): void {
   }
 }
 
-function pick<T>(items: T[]): T {
+function pick<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)]!;
 }
 
@@ -505,6 +505,35 @@ function pickHarmony(): LookHarmony {
   return pick(lookHarmonies);
 }
 
+/**
+ * Copper, autumn, and wine are one picture: orange leaves and red flowers.
+ * They share a single turn so that look is not drawn three times as often.
+ */
+const harmonyFamilies: readonly (readonly string[])[] = [
+  ["mediterranean"],
+  ["coastal"],
+  ["evergreen"],
+  ["autumn", "wine"],
+  ["orchard"],
+  ["citrus"],
+  ["woodland"],
+  ["weeping"],
+];
+
+let lastRandomHarmony = "";
+
+function pickRandomHarmony(): LookHarmony {
+  const families = harmonyFamilies.filter(
+    (names) => !names.includes(lastRandomHarmony),
+  );
+  const names = pick(families.length > 0 ? families : harmonyFamilies);
+  const name = pick(names);
+  const found = lookHarmonies.find((h) => h.name === name);
+  const harmony = found ?? pickHarmony();
+  lastRandomHarmony = harmony.name;
+  return harmony;
+}
+
 function bestHarmonyFor(
   leafPalette?: LeafPalette,
   flowerPalette?: FlowerPalette,
@@ -557,106 +586,6 @@ function rollLookFromHarmony(
     stemStyle: pick(h.stemStyles),
     stemPalette: pick(h.stemPalettes),
   };
-}
-
-function applyHarmonyRest(
-  ph: TreePhenotype,
-  h: LookHarmony,
-  keep: "leaf" | "flower" | "stem",
-): void {
-  if (keep !== "leaf") {
-    ph.leafPalette = pick(h.leafPalettes);
-    ph.leafStyle = pick(h.leafStyles);
-  }
-  if (keep !== "flower") {
-    ph.flowerPalette = pick(h.flowerPalettes);
-    ph.flowerStyle = pick(h.flowerStyles);
-  }
-  if (keep !== "stem") {
-    ph.stemPalette = pick(h.stemPalettes);
-    ph.stemStyle = pick(h.stemStyles);
-  }
-}
-
-/**
- * Keep stem/leaf/flower combos botanical. `anchor` is preserved; the rest
- * is retuned. High random threshold can allow rare clashes when not forced.
- */
-function constrainLook(
-  ph: TreePhenotype,
-  anchor: "leaf" | "flower" | "stem" | "any" = "any",
-  force = false,
-): void {
-  if (!force && chanceAt(0.25)) return;
-
-  const matched = lookHarmonies.some(
-    (h) =>
-      h.leafPalettes.includes(ph.leafPalette) &&
-      h.flowerPalettes.includes(ph.flowerPalette) &&
-      h.leafStyles.includes(ph.leafStyle) &&
-      h.flowerStyles.includes(ph.flowerStyle) &&
-      h.stemStyles.includes(ph.stemStyle) &&
-      h.stemPalettes.includes(ph.stemPalette),
-  );
-  if (matched) return;
-
-  if (anchor === "leaf") {
-    const both = lookHarmonies.filter(
-      (h) =>
-        h.leafPalettes.includes(ph.leafPalette) &&
-        h.leafStyles.includes(ph.leafStyle),
-    );
-    const h =
-      both.length > 0
-        ? pick(both)
-        : bestHarmonyFor(ph.leafPalette, undefined, ph.leafStyle);
-    applyHarmonyRest(ph, h, "leaf");
-    return;
-  }
-
-  if (anchor === "flower") {
-    const both = lookHarmonies.filter(
-      (h) =>
-        h.flowerPalettes.includes(ph.flowerPalette) &&
-        h.flowerStyles.includes(ph.flowerStyle),
-    );
-    const h =
-      both.length > 0
-        ? pick(both)
-        : bestHarmonyFor(
-            undefined,
-            ph.flowerPalette,
-            undefined,
-            ph.flowerStyle,
-          );
-    applyHarmonyRest(ph, h, "flower");
-    return;
-  }
-
-  if (anchor === "stem") {
-    const both = lookHarmonies.filter(
-      (h) =>
-        h.stemPalettes.includes(ph.stemPalette) &&
-        h.stemStyles.includes(ph.stemStyle),
-    );
-    const h =
-      both.length > 0
-        ? pick(both)
-        : (lookHarmonies.find((x) => x.stemPalettes.includes(ph.stemPalette)) ??
-          pickHarmony());
-    applyHarmonyRest(ph, h, "stem");
-    return;
-  }
-
-  const look = rollLookFromHarmony(
-    bestHarmonyFor(
-      ph.leafPalette,
-      ph.flowerPalette,
-      ph.leafStyle,
-      ph.flowerStyle,
-    ),
-  );
-  Object.assign(ph, look);
 }
 
 type TreeKind = {
@@ -1149,58 +1078,10 @@ function fitStyleNumbers(
 }
 
 function pickPhenotype(): TreePhenotype {
-  // Prefer curated kinds; remix looks inside a matching harmony.
-  if (!chanceAt(0.55) || Math.random() < 0.55) {
-    const kind = pick(treeKinds);
-    const h = bestHarmonyFor(
-      kind.phenotype.leafPalette,
-      kind.phenotype.flowerPalette,
-      kind.phenotype.leafStyle,
-      kind.phenotype.flowerStyle,
-    );
-    const look = chanceAt(0.5)
-      ? rollLookFromHarmony(h)
-      : {
-          leafStyle: kind.phenotype.leafStyle,
-          leafPalette: kind.phenotype.leafPalette,
-          flowerStyle: kind.phenotype.flowerStyle,
-          flowerPalette: kind.phenotype.flowerPalette,
-          stemStyle: kind.phenotype.stemStyle,
-          stemPalette: kind.phenotype.stemPalette,
-        };
-    // Mild within-harmony jitter.
-    if (chanceAt(0.35)) look.leafStyle = pick(h.leafStyles);
-    if (chanceAt(0.35)) look.leafPalette = pick(h.leafPalettes);
-    if (chanceAt(0.35)) look.flowerStyle = pick(h.flowerStyles);
-    if (chanceAt(0.35)) look.flowerPalette = pick(h.flowerPalettes);
-    if (chanceAt(0.35)) look.stemStyle = pick(h.stemStyles);
-    if (chanceAt(0.35)) look.stemPalette = pick(h.stemPalettes);
-
-    const s = leafShapeAspect[look.leafStyle];
-    const baseLen = kind.phenotype.leafLength ?? s.len;
-    const baseWid = kind.phenotype.leafWidth ?? s.wid;
-    const baseDens = kind.phenotype.leafDensity ?? s.dens;
-    const baseFlower = kind.phenotype.flowerSize ?? 1;
-    const numbers = fitStyleNumbers(look.leafStyle, look.flowerStyle, {
-      leafLength: jitterMul(baseLen, 0.4),
-      leafWidth: jitterMul(baseWid, 0.3),
-      leafDensity: jitterMul(baseDens, 0.3),
-      flowerSize: jitterMul(baseFlower, 0.3),
-      flowerDensity: jitterMul(kind.phenotype.flowerDensity ?? 1, 0.3),
-      flowerPetals: rollExtreme(0.2, 0.85, 0.05, kind.phenotype.flowerPetals ?? 0.5),
-      stemGirth: kind.phenotype.stemGirth ?? 1,
-    });
-    return {
-      ...defaultPhenotype,
-      ...kind.phenotype,
-      ...look,
-      ...numbers,
-    };
-  }
-
-  const look = rollLookFromHarmony(pickHarmony());
+  const look = rollLookFromHarmony(pickRandomHarmony());
   const s = leafShapeAspect[look.leafStyle];
   return {
+    ...defaultPhenotype,
     ...look,
     ...fitStyleNumbers(look.leafStyle, look.flowerStyle, {
       leafLength: s.len * (0.82 + Math.random() * 0.36),
@@ -1754,57 +1635,6 @@ function createTreeAt(x: number, y: number): SpaceColonizationTree {
     randomizeTimingInto(config);
     harmonizeRandomGrowth(config);
     phenotype = pickPhenotype();
-    if (kind) {
-      const h = bestHarmonyFor(
-        kind.phenotype.leafPalette,
-        kind.phenotype.flowerPalette,
-        kind.phenotype.leafStyle,
-        kind.phenotype.flowerStyle,
-      );
-      const look = chanceAt(0.45)
-        ? rollLookFromHarmony(h)
-        : {
-            leafStyle: kind.phenotype.leafStyle,
-            leafPalette: kind.phenotype.leafPalette,
-            flowerStyle: kind.phenotype.flowerStyle,
-            flowerPalette: kind.phenotype.flowerPalette,
-            stemStyle: kind.phenotype.stemStyle,
-            stemPalette: kind.phenotype.stemPalette,
-          };
-      const s = leafShapeAspect[look.leafStyle];
-      phenotype = {
-        ...phenotype,
-        ...kind.phenotype,
-        ...look,
-        leafLength: clamp(
-          jitterMul(kind.phenotype.leafLength ?? s.len, 0.7),
-          0.25,
-          3.2,
-        ),
-        leafWidth: clamp(
-          jitterMul(kind.phenotype.leafWidth ?? s.wid, 0.8),
-          0.15,
-          2.8,
-        ),
-        leafDensity: clamp(
-          jitterMul(kind.phenotype.leafDensity ?? s.dens, 0.75),
-          0.2,
-          2.8,
-        ),
-        flowerSize: clamp(
-          jitterMul(kind.phenotype.flowerSize ?? 1, 0.8),
-          0.25,
-          3,
-        ),
-        flowerPetals: rollExtreme(
-          0,
-          1,
-          0.05,
-          kind.phenotype.flowerPetals ?? 0.5,
-        ),
-      };
-      constrainLook(phenotype, "any", true);
-    }
     const rolled = makeRandomHabit();
     const t = clamp(randomThreshold, 0, 1);
     habit = {
@@ -1965,18 +1795,13 @@ function randomizeWind(): void {
 
 function randomizeParams(): void {
   randomizeHabitPanel();
-  // Low threshold sticks to curated types; high opens free wild rolls.
-  if (!chanceAt(0.65) || Math.random() < 0.55) {
-    applyTreeKind(pick(treeKinds), true);
-  } else {
-    activeTreeType = "custom";
-    randomizeConfigWild();
-    Object.assign(livePhenotype, pickPhenotype());
-    harmonizeRandomFoliage(livePhenotype);
-    syncLookSelects();
-    rebuildSliders();
-    applyLiveToAll();
-  }
+  activeTreeType = "custom";
+  randomizeConfigWild();
+  Object.assign(livePhenotype, pickPhenotype());
+  harmonizeRandomFoliage(livePhenotype);
+  syncLookSelects();
+  rebuildSliders();
+  applyLiveToAll();
   randomizeWind();
   rebuildSliders();
   // Full restart — wipe scene and grow a fresh tree with the new rolls.
@@ -1985,15 +1810,11 @@ function randomizeParams(): void {
 
 /** Roll stem / leaf / flower look (and often a curated type) without wiping the scene. */
 function randomizeStyleLook(): void {
-  if (Math.random() < 0.6) {
-    applyTreeKind(pick(treeKinds), false);
-  } else {
-    activeTreeType = "custom";
-    Object.assign(livePhenotype, pickPhenotype());
-    syncLookSelects();
-    rebuildSliders();
-    applyLiveToAll();
-  }
+  activeTreeType = "custom";
+  Object.assign(livePhenotype, pickPhenotype());
+  syncLookSelects();
+  rebuildSliders();
+  applyLiveToAll();
   updateStyleLabel(trees[trees.length - 1]);
 }
 
@@ -2002,7 +1823,7 @@ function randomizeStyleLook(): void {
  * and inside the size that leaf can carry. Growth, habit, and wind stay.
  */
 function randomizeFullStyle(): void {
-  const look = rollLookFromHarmony(pickHarmony());
+  const look = rollLookFromHarmony(pickRandomHarmony());
   const aspect = leafShapeAspect[look.leafStyle];
   Object.assign(
     livePhenotype,
@@ -4704,8 +4525,32 @@ for (const btn of controlsEl.querySelectorAll<HTMLButtonElement>(".rail-btn")) {
   });
 }
 
-controlsClose.addEventListener("click", () => {
+const controlsToggle =
+  document.querySelector<HTMLButtonElement>("#controls-toggle")!;
+
+function closeControlsSheet(): void {
+  controlsEl.classList.remove("sheet-open");
+  controlsToggle.setAttribute("aria-expanded", "false");
   openControlsPanel(null);
+}
+
+function toggleControlsSheet(): void {
+  const open = !controlsEl.classList.contains("sheet-open");
+  controlsEl.classList.toggle("sheet-open", open);
+  controlsToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) {
+    if (!controlsEl.dataset.open) openControlsPanel("mode");
+  } else {
+    openControlsPanel(null);
+  }
+}
+
+controlsToggle.addEventListener("click", () => {
+  toggleControlsSheet();
+});
+
+controlsClose.addEventListener("click", () => {
+  closeControlsSheet();
 });
 
 treeTypeEl.addEventListener("change", () => {
@@ -4792,10 +4637,18 @@ function canvasPoint(
   clientY: number,
 ): { x: number; y: number } {
   const rect = canvas.getBoundingClientRect();
+  const width = canvas.width / dpr;
+  const height = canvas.height / dpr;
+  if (rect.width <= 0 || rect.height <= 0) return { x: 0, y: 0 };
   return {
-    x: ((clientX - rect.left) / rect.width) * innerWidth,
-    y: ((clientY - rect.top) / rect.height) * innerHeight,
+    x: ((clientX - rect.left) / rect.width) * width,
+    y: ((clientY - rect.top) / rect.height) * height,
   };
+}
+
+/** A finger lands less precisely than a cursor, so the same aim needs a wider hit. */
+function pointerReach(e: PointerEvent, base: number): number {
+  return e.pointerType === "touch" ? Math.max(base, 68) : base;
 }
 
 /** Stage gestures: click develop, drag steer, alt-drag leaves, ctrl cut, shift flower. */
@@ -4807,6 +4660,7 @@ type GrowDrag = {
   startX: number;
   startY: number;
   pointerId: number;
+  pointerType: string;
   dragging: boolean;
   primed: boolean;
   lastGrowMs: number;
@@ -5165,14 +5019,19 @@ function gestureFor(e: PointerEvent): Gesture {
   return "grow";
 }
 
-function applyClickGesture(kind: "cut" | "bloom", x: number, y: number): void {
+function applyClickGesture(
+  kind: "cut" | "bloom",
+  x: number,
+  y: number,
+  reach: number,
+): void {
   for (let i = trees.length - 1; i >= 0; i--) {
     const tree = trees[i]!;
-    if (kind === "cut" && tree.cutAt(x, y)) {
+    if (kind === "cut" && tree.cutAt(x, y, reach)) {
       console.log("[cut] ok on tree", i);
       return;
     }
-    if (kind === "bloom" && tree.addFlowerAt(x, y)) {
+    if (kind === "bloom" && tree.addFlowerAt(x, y, reach)) {
       console.log("[flower] ok on tree", i);
       return;
     }
@@ -5180,12 +5039,24 @@ function applyClickGesture(kind: "cut" | "bloom", x: number, y: number): void {
   console.log(kind === "cut" ? "[cut] miss" : "[flower] miss");
 }
 
+function captureStagePointer(pointerId: number): void {
+  try {
+    canvas.setPointerCapture(pointerId);
+  } catch {
+    /* the pointer can already be gone on a short tap */
+  }
+}
+
 canvas.addEventListener("pointerdown", (e) => {
-  if (e.button !== 0) return;
-  if ((e.target as HTMLElement).closest?.("#controls, #tools")) return;
+  if (e.button !== 0 && e.pointerType !== "touch") return;
+  if (controlsEl.classList.contains("sheet-open")) {
+    closeControlsSheet();
+    return;
+  }
 
   const { x, y } = canvasPoint(e.clientX, e.clientY);
   const gesture = gestureFor(e);
+  const reach = pointerReach(e, 48);
   console.log("[click]", {
     x: Math.round(x),
     y: Math.round(y),
@@ -5194,30 +5065,32 @@ canvas.addEventListener("pointerdown", (e) => {
     tool: stageTool,
   });
 
+  if (e.pointerType === "touch") e.preventDefault();
+
   if (gesture === "cut" || gesture === "bloom") {
-    e.preventDefault();
-    applyClickGesture(gesture, x, y);
+    applyClickGesture(gesture, x, y, reach);
     return;
   }
 
   // Leaf tool, or Alt+drag / Alt+click: paint leaves on wood.
   if (gesture === "leaves") {
-    e.preventDefault();
+    const leafReach = pointerReach(e, 56);
     for (let i = trees.length - 1; i >= 0; i--) {
       const tree = trees[i]!;
-      if (!tree.hitsInteractable(x, y)) continue;
+      if (!tree.hitsInteractable(x, y, leafReach)) continue;
       growDrag = {
         tree,
         startX: x,
         startY: y,
         pointerId: e.pointerId,
+        pointerType: e.pointerType,
         dragging: false,
         primed: true,
         lastGrowMs: 0,
         mode: "leaves",
       };
-      tree.paintLeavesAt(x, y);
-      canvas.setPointerCapture(e.pointerId);
+      tree.paintLeavesAt(x, y, leafReach);
+      captureStagePointer(e.pointerId);
       canvas.classList.add("painting-leaves");
       return;
     }
@@ -5227,18 +5100,19 @@ canvas.addEventListener("pointerdown", (e) => {
   // Start a potential grow / drag on wood.
   for (let i = trees.length - 1; i >= 0; i--) {
     const tree = trees[i]!;
-    if (!tree.hitsInteractable(x, y)) continue;
+    if (!tree.hitsInteractable(x, y, reach)) continue;
     growDrag = {
       tree,
       startX: x,
       startY: y,
       pointerId: e.pointerId,
+      pointerType: e.pointerType,
       dragging: false,
       primed: false,
       lastGrowMs: 0,
       mode: "grow",
     };
-    canvas.setPointerCapture(e.pointerId);
+    captureStagePointer(e.pointerId);
     return;
   }
 
@@ -5250,20 +5124,30 @@ canvas.addEventListener("pointermove", (e) => {
   const { x, y } = canvasPoint(e.clientX, e.clientY);
   const dist = Math.hypot(x - growDrag.startX, y - growDrag.startY);
 
+  const slop = growDrag.pointerType === "touch" ? 22 : DRAG_THRESHOLD;
+
   if (growDrag.mode === "leaves") {
-    if (dist >= DRAG_THRESHOLD) growDrag.dragging = true;
+    if (dist >= slop) growDrag.dragging = true;
     const now = performance.now();
     if (now - growDrag.lastGrowMs < LEAF_PAINT_INTERVAL_MS) return;
     growDrag.lastGrowMs = now;
-    growDrag.tree.paintLeavesAt(x, y);
+    growDrag.tree.paintLeavesAt(
+      x,
+      y,
+      growDrag.pointerType === "touch" ? 76 : 56,
+    );
     return;
   }
 
-  if (!growDrag.dragging && dist >= DRAG_THRESHOLD) {
+  if (!growDrag.dragging && dist >= slop) {
     growDrag.dragging = true;
     canvas.classList.add("steering");
     // Claim the grabbed limb, then grow a bush toward the pointer.
-    growDrag.tree.claimBranchAt(growDrag.startX, growDrag.startY);
+    growDrag.tree.claimBranchAt(
+      growDrag.startX,
+      growDrag.startY,
+      growDrag.pointerType === "touch" ? 68 : 52,
+    );
     growDrag.primed = true;
     growDrag.tree.steerToward(x, y);
     growDrag.lastGrowMs = performance.now();
@@ -5278,41 +5162,45 @@ canvas.addEventListener("pointermove", (e) => {
   growDrag.tree.steerToward(x, y);
 });
 
-canvas.addEventListener("pointerup", (e) => {
+function releaseGrowPointer(e: PointerEvent, allowPlant: boolean): void {
   if (!growDrag || e.pointerId !== growDrag.pointerId) return;
   const { x, y } = canvasPoint(e.clientX, e.clientY);
   const drag = growDrag;
+  const reach = drag.pointerType === "touch" ? 68 : 48;
 
   if (drag.mode === "leaves") {
-    drag.tree.paintLeavesAt(x, y);
+    drag.tree.paintLeavesAt(x, y, drag.pointerType === "touch" ? 76 : 56);
     console.log("[leaves] paint end");
     endGrowDrag();
     return;
   }
 
   if (!drag.dragging) {
-    // Simple click — claim that limb, then nurture it.
+    // A tap, including one the browser tried to cancel before pointerup.
     if (
-      drag.tree.claimBranchAt(drag.startX, drag.startY) &&
-      drag.tree.sproutAt(drag.startX, drag.startY)
+      drag.tree.claimBranchAt(drag.startX, drag.startY, reach) &&
+      drag.tree.sproutAt(drag.startX, drag.startY, reach)
     ) {
       console.log("[sprout] ok");
-    } else if (drag.tree.sproutAt(drag.startX, drag.startY)) {
+    } else if (drag.tree.sproutAt(drag.startX, drag.startY, reach)) {
       console.log("[sprout] ok");
     } else {
       console.log("[sprout] miss — no branch hit");
-      if (plantMode) plantAt(e.clientX, e.clientY);
+      if (allowPlant && plantMode) plantAt(e.clientX, e.clientY);
     }
   } else {
     drag.tree.steerToward(x, y);
     console.log("[steer] drag end");
   }
   endGrowDrag();
+}
+
+canvas.addEventListener("pointerup", (e) => {
+  releaseGrowPointer(e, true);
 });
 
 canvas.addEventListener("pointercancel", (e) => {
-  if (!growDrag || e.pointerId !== growDrag.pointerId) return;
-  endGrowDrag();
+  releaseGrowPointer(e, false);
 });
 
 window.addEventListener("resize", resize);
