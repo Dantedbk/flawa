@@ -235,6 +235,28 @@ void main() {
 }
 `;
 
+/**
+ * A cleared WebGL canvas must stay transparent when drawn onto the page.
+ * Mobile Chrome often presents that clear as opaque black, which covers the wash.
+ */
+function webglClearStaysTransparent(source: HTMLCanvasElement): boolean {
+  const gl = source.getContext("webgl2");
+  if (!gl) return false;
+  gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+  gl.clearColor(0, 0, 0, 0);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  const probe = document.createElement("canvas");
+  probe.width = 1;
+  probe.height = 1;
+  const ctx = probe.getContext("2d", { alpha: true, willReadFrequently: true });
+  if (!ctx) return false;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, 1, 1);
+  ctx.drawImage(source, 0, 0, 1, 1);
+  const px = ctx.getImageData(0, 0, 1, 1).data;
+  return px[0] > 250 && px[1] > 250 && px[2] > 250;
+}
+
 /** One coverage layer per leaf style, rasterized from the canvas outlines. */
 function bakeLeafMask(gl: WebGL2RenderingContext): WebGLTexture {
   const res = LEAF_MASK_RES;
@@ -394,6 +416,9 @@ export class WebGLFoliage {
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
       gl.clearColor(0, 0, 0, 0);
+      if (!webglClearStaysTransparent(canvas)) {
+        throw new Error("WebGL clear composites as black");
+      }
       this.ok = true;
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);

@@ -33,9 +33,10 @@ const foliageCanvas = document.createElement("canvas");
 const foliage = new WebGLFoliage(foliageCanvas);
 const ctx =
   canvas.getContext("2d", {
-    alpha: true,
-    desynchronized: true,
-    colorSpace: "srgb",
+    // Opaque. A transparent buffer is what mobile Chrome presents as black
+    // once the canvas covers the page wash.
+    alpha: false,
+    desynchronized: false,
   }) ?? canvas.getContext("2d")!;
 const fpsEl = document.querySelector<HTMLElement>("#stat-fps")!;
 const nodesEl = document.querySelector<HTMLElement>("#stat-nodes")!;
@@ -4123,9 +4124,11 @@ function resize(): void {
   canvas.style.width = `${w}px`;
   canvas.style.height = `${h}px`;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  stageBackdrop = null;
   foliage.resize(w, h, dpr);
 
   for (const t of trees) t.resize(w, h);
+  paintStageBackdrop(ctx, w, h);
 }
 
 /** Reused so the crown's back-to-front order does not allocate every frame. */
@@ -4364,11 +4367,57 @@ function drawZenGroundGlow(
   c.fill();
 }
 
+/**
+ * Resizing the stage throws away the bitmap and any gradient built before that.
+ * A gradient kept across that clear paints black on mobile Chrome.
+ */
+let stageBackdrop: { w: number; h: number; base: CanvasGradient } | null = null;
+
+function cssLinearEnds(
+  angleDeg: number,
+  w: number,
+  h: number,
+): { x0: number; y0: number; x1: number; y1: number } {
+  const angle = ((angleDeg % 360) * Math.PI) / 180;
+  const dx = Math.sin(angle);
+  const dy = -Math.cos(angle);
+  const half = (Math.abs(w * dx) + Math.abs(h * dy)) / 2;
+  const cx = w / 2;
+  const cy = h / 2;
+  return {
+    x0: cx - dx * half,
+    y0: cy - dy * half,
+    x1: cx + dx * half,
+    y1: cy + dy * half,
+  };
+}
+
+function paintStageBackdrop(
+  c: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+): void {
+  let wash = stageBackdrop;
+  if (!wash || wash.w !== w || wash.h !== h) {
+    const ends = cssLinearEnds(160, w, h);
+    const base = c.createLinearGradient(ends.x0, ends.y0, ends.x1, ends.y1);
+    base.addColorStop(0, "#f4f7f1");
+    base.addColorStop(0.42, "#dfe8df");
+    base.addColorStop(1, "#b7c8b4");
+    wash = { w, h, base };
+    stageBackdrop = wash;
+  }
+  c.fillStyle = "#dfe8df";
+  c.fillRect(0, 0, w, h);
+  c.fillStyle = wash.base;
+  c.fillRect(0, 0, w, h);
+}
+
 function draw(): void {
   const w = innerWidth;
   const h = innerHeight;
 
-  ctx.clearRect(0, 0, w, h);
+  paintStageBackdrop(ctx, w, h);
 
   for (const tree of trees) {
     drawZenGroundGlow(ctx, tree, w, h);

@@ -1,4 +1,5 @@
 :root {
+  color-scheme: light only;
   --ink: #1c261c;
   --ink-soft: #3a4a3a;
   --mist: #dfe8df;
@@ -18,10 +19,12 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background:
-    radial-gradient(120% 80% at 18% 12%, #f4f7f1 0%, transparent 55%),
-    radial-gradient(90% 70% at 88% 78%, #c9d6c4 0%, transparent 50%),
-    linear-gradient(160deg, var(--mist) 0%, var(--mist-deep) 100%);
+  color-scheme: light only;
+  background-color: #dfe8df;
+  background-image:
+    radial-gradient(120% 80% at 18% 12%, #f4f7f1 0%, rgba(244, 247, 241, 0) 55%),
+    radial-gradient(90% 70% at 88% 78%, #c9d6c4 0%, rgba(201, 214, 196, 0) 50%),
+    linear-gradient(160deg, #dfe8df 0%, #b7c8b4 100%);
   color: var(--ink);
   font-family: "Outfit", sans-serif;
 }
@@ -34,17 +37,20 @@ body {
   position: relative;
   width: 100%;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow: hidden;
+  color-scheme: light only;
+  background-color: #dfe8df;
 }
 
 #stage {
   display: block;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   cursor: pointer;
-  /* Promote to its own compositor layer so blits stay on the GPU. */
-  transform: translateZ(0);
-  will-change: contents;
+  color-scheme: light only;
+  background-color: #dfe8df;
 }
 
 .meta {
