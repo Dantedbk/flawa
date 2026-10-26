@@ -610,6 +610,24 @@ body {
   pointer-events: auto;
 }
 
+.zoom {
+  position: absolute;
+  z-index: 4;
+  right: max(0.55rem, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  pointer-events: auto;
+}
+
+.zoom .tool-btn.tool-action,
+.zoom .tool-btn.tool-action + .tool-btn.tool-action {
+  margin-left: 0;
+}
+
 .tool-slot {
   position: relative;
 }
